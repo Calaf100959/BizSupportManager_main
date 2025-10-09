@@ -17,6 +17,10 @@ This is a customer relationship management (CRM) system designed specifically fo
 - Added "その他" (Other) option to company type selection
 - Extended phone numbers from 1 to 5 fields (電話番号1〜5) with note fields for department/purpose
   - Note: Phone note fields are not included in CSV export as requested
+- Updated 経営カルテ page to use registered offices instead of demo data
+  - Office selection now pulls from actual registered offices via API
+  - Karte history displays actual records for selected office
+  - Created kartes are properly saved and linked to selected office
 
 ## User Preferences
 
