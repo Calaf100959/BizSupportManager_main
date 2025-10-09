@@ -13,8 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Building2, Edit, Trash2, UserPlus, User } from "lucide-react";
-import { type Office, type Person } from "@shared/schema";
+import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus } from "lucide-react";
+import { type Office, type Person, type Karte } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -24,6 +24,7 @@ export default function OfficeDetailPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [deletePersonId, setDeletePersonId] = useState<string | null>(null);
+  const [deleteKarteId, setDeleteKarteId] = useState<string | null>(null);
 
   const { data: office, isLoading: officeLoading } = useQuery<Office>({
     queryKey: [`/api/offices/${officeId}`],
@@ -32,6 +33,11 @@ export default function OfficeDetailPage() {
 
   const { data: persons = [], isLoading: personsLoading } = useQuery<Person[]>({
     queryKey: [`/api/offices/${officeId}/persons`],
+    enabled: !!officeId,
+  });
+
+  const { data: kartes = [], isLoading: kartesLoading } = useQuery<Karte[]>({
+    queryKey: [`/api/offices/${officeId}/kartes`],
     enabled: !!officeId,
   });
 
@@ -44,6 +50,25 @@ export default function OfficeDetailPage() {
         description: "個人情報を削除しました",
       });
       setDeletePersonId(null);
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "エラー",
+        description: "削除に失敗しました",
+      });
+    },
+  });
+
+  const deleteKarteMutation = useMutation({
+    mutationFn: (karteId: string) => apiRequest(`/api/kartes/${karteId}`, "DELETE"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/offices/${officeId}/kartes`] });
+      toast({
+        title: "削除しました",
+        description: "経営カルテを削除しました",
+      });
+      setDeleteKarteId(null);
     },
     onError: () => {
       toast({
@@ -216,6 +241,79 @@ export default function OfficeDetailPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                経営カルテ
+              </CardTitle>
+              <CardDescription>支援履歴の記録</CardDescription>
+            </div>
+            <Button asChild data-testid="button-add-karte">
+              <Link href={`/office/${officeId}/karte/new`}>
+                <Plus className="h-4 w-4 mr-2" />
+                カルテ作成
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {kartesLoading ? (
+            <div className="text-center py-4 text-muted-foreground">読み込み中...</div>
+          ) : kartes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              経営カルテが登録されていません
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {kartes.map((karte) => (
+                <div
+                  key={karte.id}
+                  className="flex items-start justify-between p-4 border rounded-md hover-elevate"
+                  data-testid={`karte-${karte.id}`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium" data-testid={`karte-title-${karte.id}`}>{karte.title}</p>
+                      <Badge variant="outline">{karte.visitDate}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{karte.content}</p>
+                    {karte.nextAction && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        <span className="font-medium">次回: </span>
+                        {karte.nextAction}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      data-testid={`button-edit-karte-${karte.id}`}
+                    >
+                      <Link href={`/office/${officeId}/karte/${karte.id}`}>
+                        <Edit className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDeleteKarteId(karte.id)}
+                      data-testid={`button-delete-karte-${karte.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <AlertDialog open={!!deletePersonId} onOpenChange={(open) => !open && setDeletePersonId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -229,6 +327,26 @@ export default function OfficeDetailPage() {
             <AlertDialogAction
               onClick={() => deletePersonId && deletePersonMutation.mutate(deletePersonId)}
               data-testid="button-confirm-delete-person"
+            >
+              削除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteKarteId} onOpenChange={(open) => !open && setDeleteKarteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>経営カルテを削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              この操作は取り消せません。経営カルテを完全に削除します。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-karte">キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteKarteId && deleteKarteMutation.mutate(deleteKarteId)}
+              data-testid="button-confirm-delete-karte"
             >
               削除
             </AlertDialogAction>

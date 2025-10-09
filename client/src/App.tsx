@@ -13,6 +13,7 @@ import SearchPage from "@/pages/search";
 import OfficeFormPage from "@/pages/office-form";
 import OfficeDetailPage from "@/pages/office-detail";
 import PersonFormPage from "@/pages/person-form";
+import KarteFormPage from "@/pages/karte-form";
 import ExportPage from "@/pages/export";
 import KartePage from "@/pages/karte";
 import WorklogPage from "@/pages/worklog";
@@ -54,6 +55,8 @@ function AuthenticatedApp() {
               <Route path="/office/:officeId/detail" component={OfficeDetailPage} />
               <Route path="/office/:officeId/person/new" component={PersonFormPage} />
               <Route path="/office/:officeId/person/:personId" component={PersonFormPage} />
+              <Route path="/office/:officeId/karte/new" component={KarteFormPage} />
+              <Route path="/office/:officeId/karte/:karteId" component={KarteFormPage} />
               <Route path="/office/:id" component={OfficeFormPage} />
               <Route path="/export" component={ExportPage} />
               <Route path="/karte" component={KartePage} />
