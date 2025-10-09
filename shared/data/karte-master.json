@@ -1,0 +1,2321 @@
+{
+  "guidanceItems": [
+    {
+      "code": "01",
+      "name": "経営革新"
+    },
+    {
+      "code": "02",
+      "name": "経営一般"
+    },
+    {
+      "code": "03",
+      "name": "情報化"
+    },
+    {
+      "code": "04",
+      "name": "金融"
+    },
+    {
+      "code": "05",
+      "name": "税務"
+    },
+    {
+      "code": "06",
+      "name": "労働"
+    },
+    {
+      "code": "07",
+      "name": "取引"
+    },
+    {
+      "code": "08",
+      "name": "環境対策"
+    },
+    {
+      "code": "09",
+      "name": "事業承継"
+    },
+    {
+      "code": "10",
+      "name": "事業廃止"
+    },
+    {
+      "code": "11",
+      "name": "その他"
+    }
+  ],
+  "guidanceCategories": [
+    {
+      "code": "01",
+      "name": "経営革新",
+      "itemCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "経営状況ヒアリング",
+      "itemCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "経営分析",
+      "itemCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "経営計画・事業計画",
+      "itemCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "法認定",
+      "itemCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "持続化補助金",
+      "itemCode": "02"
+    },
+    {
+      "code": "06",
+      "name": "ものづくり補助金",
+      "itemCode": "02"
+    },
+    {
+      "code": "07",
+      "name": "その他補助金",
+      "itemCode": "02"
+    },
+    {
+      "code": "08",
+      "name": "商品開発",
+      "itemCode": "02"
+    },
+    {
+      "code": "09",
+      "name": "法人化",
+      "itemCode": "02"
+    },
+    {
+      "code": "10",
+      "name": "記帳指導(経理全般)",
+      "itemCode": "02"
+    },
+    {
+      "code": "11",
+      "name": "法律相談",
+      "itemCode": "02"
+    },
+    {
+      "code": "12",
+      "name": "許認可(営業許可等)",
+      "itemCode": "02"
+    },
+    {
+      "code": "13",
+      "name": "知的財産(特許等)",
+      "itemCode": "02"
+    },
+    {
+      "code": "14",
+      "name": "倒産防止共済",
+      "itemCode": "02"
+    },
+    {
+      "code": "15",
+      "name": "小規模企業共済",
+      "itemCode": "02"
+    },
+    {
+      "code": "16",
+      "name": "中退共・特退共",
+      "itemCode": "02"
+    },
+    {
+      "code": "17",
+      "name": "商工貯蓄・福祉・まかせて共済",
+      "itemCode": "02"
+    },
+    {
+      "code": "18",
+      "name": "火災・自転車・まごころ共済",
+      "itemCode": "02"
+    },
+    {
+      "code": "19",
+      "name": "その他・経営一般",
+      "itemCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報機器の導入",
+      "itemCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "ソフトウェアの導入",
+      "itemCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "情報機器の操作",
+      "itemCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "電子商取引",
+      "itemCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "HP・SNSの活用",
+      "itemCode": "03"
+    },
+    {
+      "code": "06",
+      "name": "AIの活用",
+      "itemCode": "03"
+    },
+    {
+      "code": "07",
+      "name": "その他・情報化",
+      "itemCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "公庫・経営改善貸付",
+      "itemCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "公庫・普通貸付",
+      "itemCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "公庫・その他特別貸付等",
+      "itemCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "県制度貸付",
+      "itemCode": "04"
+    },
+    {
+      "code": "05",
+      "name": "市町村制度貸付",
+      "itemCode": "04"
+    },
+    {
+      "code": "06",
+      "name": "その他・金融",
+      "itemCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "所得税(源泉税以外)",
+      "itemCode": "05"
+    },
+    {
+      "code": "02",
+      "name": "源泉税",
+      "itemCode": "05"
+    },
+    {
+      "code": "03",
+      "name": "消費税",
+      "itemCode": "05"
+    },
+    {
+      "code": "04",
+      "name": "法人税",
+      "itemCode": "05"
+    },
+    {
+      "code": "05",
+      "name": "相続税・贈与税",
+      "itemCode": "05"
+    },
+    {
+      "code": "06",
+      "name": "その他・税務",
+      "itemCode": "05"
+    },
+    {
+      "code": "01",
+      "name": "労働法(労基法・最低賃金法等)",
+      "itemCode": "06"
+    },
+    {
+      "code": "02",
+      "name": "労働保険(労災・雇用保険)",
+      "itemCode": "06"
+    },
+    {
+      "code": "03",
+      "name": "社会保険(健保・厚生年金)",
+      "itemCode": "06"
+    },
+    {
+      "code": "04",
+      "name": "労働関係助成金制度",
+      "itemCode": "06"
+    },
+    {
+      "code": "05",
+      "name": "その他・労働",
+      "itemCode": "06"
+    },
+    {
+      "code": "01",
+      "name": "販路開拓",
+      "itemCode": "07"
+    },
+    {
+      "code": "02",
+      "name": "斡旋",
+      "itemCode": "07"
+    },
+    {
+      "code": "03",
+      "name": "照会",
+      "itemCode": "07"
+    },
+    {
+      "code": "04",
+      "name": "信用調査",
+      "itemCode": "07"
+    },
+    {
+      "code": "05",
+      "name": "貿易・原産地証明",
+      "itemCode": "07"
+    },
+    {
+      "code": "06",
+      "name": "その他取引",
+      "itemCode": "07"
+    },
+    {
+      "code": "01",
+      "name": "容器包装リサイクル法業務受託",
+      "itemCode": "08"
+    },
+    {
+      "code": "02",
+      "name": "環境関連法",
+      "itemCode": "08"
+    },
+    {
+      "code": "03",
+      "name": "その他・環境対策",
+      "itemCode": "08"
+    },
+    {
+      "code": "01",
+      "name": "親族内承継",
+      "itemCode": "09"
+    },
+    {
+      "code": "02",
+      "name": "従業員承継",
+      "itemCode": "09"
+    },
+    {
+      "code": "03",
+      "name": "第三者承継",
+      "itemCode": "09"
+    },
+    {
+      "code": "04",
+      "name": "その他・事業承継",
+      "itemCode": "09"
+    },
+    {
+      "code": "01",
+      "name": "個人事業の廃止",
+      "itemCode": "10"
+    },
+    {
+      "code": "02",
+      "name": "法人事業の廃止",
+      "itemCode": "10"
+    },
+    {
+      "code": "03",
+      "name": "その他・事業廃止",
+      "itemCode": "10"
+    },
+    {
+      "code": "01",
+      "name": "資料配布(会報、総会資料　他)",
+      "itemCode": "11"
+    },
+    {
+      "code": "02",
+      "name": "集金",
+      "itemCode": "11"
+    },
+    {
+      "code": "03",
+      "name": "調査(経営に関しないもの)",
+      "itemCode": "11"
+    },
+    {
+      "code": "04",
+      "name": "連絡調整(地域振興事業・青年部女性部等",
+      "itemCode": "11"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "11"
+    }
+  ],
+  "guidanceContents": [
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "01",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "01",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "01",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "01",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "01",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "04"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "05"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "05"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "05"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "05"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "05"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "06"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "06"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "06"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "06"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "06"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "07"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "07"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "07"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "07"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "07"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "08"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "08"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "08"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "08"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "08"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "09"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "09"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "09"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "09"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "09"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "10"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "10"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "10"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "10"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "10"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "11"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "11"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "11"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "11"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "11"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "12"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "12"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "12"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "12"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "12"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "13"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "13"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "13"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "13"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "13"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "14"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "14"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "14"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "14"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "14"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "15"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "15"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "15"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "15"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "15"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "16"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "16"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "16"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "16"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "16"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "17"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "17"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "17"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "17"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "17"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "18"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "18"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "18"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "18"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "18"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "02",
+      "categoryCode": "19"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "02",
+      "categoryCode": "19"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "02",
+      "categoryCode": "19"
+    },
+    {
+      "code": "04",
+      "name": "各種手続き",
+      "itemCode": "02",
+      "categoryCode": "19"
+    },
+    {
+      "code": "05",
+      "name": "専門家による指導",
+      "itemCode": "02",
+      "categoryCode": "19"
+    },
+    {
+      "code": "06",
+      "name": "その他",
+      "itemCode": "02",
+      "categoryCode": "19"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "03",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "03",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "03",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "03",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "03",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "03",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "03",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "03",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "03",
+      "categoryCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "03",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "03",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "03",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "03",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "03",
+      "categoryCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "03",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "03",
+      "categoryCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "03",
+      "categoryCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "03",
+      "categoryCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "03",
+      "categoryCode": "04"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "03",
+      "categoryCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "03",
+      "categoryCode": "05"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "03",
+      "categoryCode": "05"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "03",
+      "categoryCode": "05"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "03",
+      "categoryCode": "05"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "03",
+      "categoryCode": "05"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "03",
+      "categoryCode": "06"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "03",
+      "categoryCode": "06"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "03",
+      "categoryCode": "06"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "03",
+      "categoryCode": "06"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "03",
+      "categoryCode": "06"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "03",
+      "categoryCode": "07"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "03",
+      "categoryCode": "07"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "03",
+      "categoryCode": "07"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "03",
+      "categoryCode": "07"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "03",
+      "categoryCode": "07"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "04",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "04",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "04",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "記入方法指導",
+      "itemCode": "04",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "04",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "04",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "04",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "04",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "記入方法指導",
+      "itemCode": "04",
+      "categoryCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "04",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "04",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "04",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "04",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "記入方法指導",
+      "itemCode": "04",
+      "categoryCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "04",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "04",
+      "categoryCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "04",
+      "categoryCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "04",
+      "categoryCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "記入方法指導",
+      "itemCode": "04",
+      "categoryCode": "04"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "04",
+      "categoryCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "04",
+      "categoryCode": "05"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "04",
+      "categoryCode": "05"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "04",
+      "categoryCode": "05"
+    },
+    {
+      "code": "04",
+      "name": "記入方法指導",
+      "itemCode": "04",
+      "categoryCode": "05"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "04",
+      "categoryCode": "05"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "04",
+      "categoryCode": "06"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "04",
+      "categoryCode": "06"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "04",
+      "categoryCode": "06"
+    },
+    {
+      "code": "04",
+      "name": "記入方法指導",
+      "itemCode": "04",
+      "categoryCode": "06"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "04",
+      "categoryCode": "06"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "05",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "05",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "届出指導",
+      "itemCode": "05",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "納付指導",
+      "itemCode": "05",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "専門家による指導",
+      "itemCode": "05",
+      "categoryCode": "01"
+    },
+    {
+      "code": "06",
+      "name": "その他",
+      "itemCode": "05",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "05",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "05",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "届出指導",
+      "itemCode": "05",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "納付指導",
+      "itemCode": "05",
+      "categoryCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "専門家による指導",
+      "itemCode": "05",
+      "categoryCode": "02"
+    },
+    {
+      "code": "06",
+      "name": "その他",
+      "itemCode": "05",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "05",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "05",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "届出指導",
+      "itemCode": "05",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "納付指導",
+      "itemCode": "05",
+      "categoryCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "専門家による指導",
+      "itemCode": "05",
+      "categoryCode": "03"
+    },
+    {
+      "code": "06",
+      "name": "その他",
+      "itemCode": "05",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "05",
+      "categoryCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "05",
+      "categoryCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "届出指導",
+      "itemCode": "05",
+      "categoryCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "納付指導",
+      "itemCode": "05",
+      "categoryCode": "04"
+    },
+    {
+      "code": "05",
+      "name": "専門家による指導",
+      "itemCode": "05",
+      "categoryCode": "04"
+    },
+    {
+      "code": "06",
+      "name": "その他",
+      "itemCode": "05",
+      "categoryCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "05",
+      "categoryCode": "05"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "05",
+      "categoryCode": "05"
+    },
+    {
+      "code": "03",
+      "name": "届出指導",
+      "itemCode": "05",
+      "categoryCode": "05"
+    },
+    {
+      "code": "04",
+      "name": "納付指導",
+      "itemCode": "05",
+      "categoryCode": "05"
+    },
+    {
+      "code": "05",
+      "name": "専門家による指導",
+      "itemCode": "05",
+      "categoryCode": "05"
+    },
+    {
+      "code": "06",
+      "name": "その他",
+      "itemCode": "05",
+      "categoryCode": "05"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "05",
+      "categoryCode": "06"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "05",
+      "categoryCode": "06"
+    },
+    {
+      "code": "03",
+      "name": "届出指導",
+      "itemCode": "05",
+      "categoryCode": "06"
+    },
+    {
+      "code": "04",
+      "name": "納付指導",
+      "itemCode": "05",
+      "categoryCode": "06"
+    },
+    {
+      "code": "05",
+      "name": "専門家による指導",
+      "itemCode": "05",
+      "categoryCode": "06"
+    },
+    {
+      "code": "06",
+      "name": "その他",
+      "itemCode": "05",
+      "categoryCode": "06"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "06",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "06",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "06",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "06",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "06",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "06",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "06",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "06",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "06",
+      "categoryCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "06",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "06",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "06",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "06",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "06",
+      "categoryCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "06",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "06",
+      "categoryCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "06",
+      "categoryCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "06",
+      "categoryCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "06",
+      "categoryCode": "04"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "06",
+      "categoryCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "説明指導",
+      "itemCode": "06",
+      "categoryCode": "05"
+    },
+    {
+      "code": "02",
+      "name": "情報の伝達・提供",
+      "itemCode": "06",
+      "categoryCode": "05"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "06",
+      "categoryCode": "05"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "06",
+      "categoryCode": "05"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "06",
+      "categoryCode": "05"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "07",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "07",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "専門家による指導",
+      "itemCode": "07",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "その他",
+      "itemCode": "07",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "07",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "07",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "専門家による指導",
+      "itemCode": "07",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "その他",
+      "itemCode": "07",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "07",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "07",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "専門家による指導",
+      "itemCode": "07",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "その他",
+      "itemCode": "07",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "07",
+      "categoryCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "07",
+      "categoryCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "専門家による指導",
+      "itemCode": "07",
+      "categoryCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "その他",
+      "itemCode": "07",
+      "categoryCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "07",
+      "categoryCode": "05"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "07",
+      "categoryCode": "05"
+    },
+    {
+      "code": "03",
+      "name": "専門家による指導",
+      "itemCode": "07",
+      "categoryCode": "05"
+    },
+    {
+      "code": "04",
+      "name": "その他",
+      "itemCode": "07",
+      "categoryCode": "05"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "07",
+      "categoryCode": "06"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "07",
+      "categoryCode": "06"
+    },
+    {
+      "code": "03",
+      "name": "専門家による指導",
+      "itemCode": "07",
+      "categoryCode": "06"
+    },
+    {
+      "code": "04",
+      "name": "その他",
+      "itemCode": "07",
+      "categoryCode": "06"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "08",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "08",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "08",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "08",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "08",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "08",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "08",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "08",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "08",
+      "categoryCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "08",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "08",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "08",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "08",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "08",
+      "categoryCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "08",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "09",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "09",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "09",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "09",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "09",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "09",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "09",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "09",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "09",
+      "categoryCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "09",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "09",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "09",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "09",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "09",
+      "categoryCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "09",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "09",
+      "categoryCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "09",
+      "categoryCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "09",
+      "categoryCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "09",
+      "categoryCode": "04"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "09",
+      "categoryCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "10",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "10",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "10",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "10",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "10",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "10",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "10",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "10",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "10",
+      "categoryCode": "02"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "10",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "10",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "説明指導",
+      "itemCode": "10",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "作成指導",
+      "itemCode": "10",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "専門家による指導",
+      "itemCode": "10",
+      "categoryCode": "03"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "10",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "会報",
+      "itemCode": "11",
+      "categoryCode": "01"
+    },
+    {
+      "code": "02",
+      "name": "総会資料",
+      "itemCode": "11",
+      "categoryCode": "01"
+    },
+    {
+      "code": "03",
+      "name": "会議資料",
+      "itemCode": "11",
+      "categoryCode": "01"
+    },
+    {
+      "code": "04",
+      "name": "事業案内(イベント等)",
+      "itemCode": "11",
+      "categoryCode": "01"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "11",
+      "categoryCode": "01"
+    },
+    {
+      "code": "01",
+      "name": "会費",
+      "itemCode": "11",
+      "categoryCode": "02"
+    },
+    {
+      "code": "02",
+      "name": "貯蓄共済",
+      "itemCode": "11",
+      "categoryCode": "02"
+    },
+    {
+      "code": "03",
+      "name": "その他共済",
+      "itemCode": "11",
+      "categoryCode": "02"
+    },
+    {
+      "code": "04",
+      "name": "その他",
+      "itemCode": "11",
+      "categoryCode": "02"
+    },
+    {
+      "code": "01",
+      "name": "調査票配布",
+      "itemCode": "11",
+      "categoryCode": "03"
+    },
+    {
+      "code": "02",
+      "name": "調査票回収",
+      "itemCode": "11",
+      "categoryCode": "03"
+    },
+    {
+      "code": "03",
+      "name": "聞き取り",
+      "itemCode": "11",
+      "categoryCode": "03"
+    },
+    {
+      "code": "04",
+      "name": "その他",
+      "itemCode": "11",
+      "categoryCode": "03"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "11",
+      "categoryCode": "04"
+    },
+    {
+      "code": "02",
+      "name": "説明",
+      "itemCode": "11",
+      "categoryCode": "04"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "11",
+      "categoryCode": "04"
+    },
+    {
+      "code": "04",
+      "name": "各種打合せ",
+      "itemCode": "11",
+      "categoryCode": "04"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "11",
+      "categoryCode": "04"
+    },
+    {
+      "code": "01",
+      "name": "情報提供",
+      "itemCode": "11",
+      "categoryCode": "05"
+    },
+    {
+      "code": "02",
+      "name": "説明",
+      "itemCode": "11",
+      "categoryCode": "05"
+    },
+    {
+      "code": "03",
+      "name": "各種手続き",
+      "itemCode": "11",
+      "categoryCode": "05"
+    },
+    {
+      "code": "04",
+      "name": "各種打合せ",
+      "itemCode": "11",
+      "categoryCode": "05"
+    },
+    {
+      "code": "05",
+      "name": "その他",
+      "itemCode": "11",
+      "categoryCode": "05"
+    }
+  ]
+}

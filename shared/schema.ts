@@ -153,6 +153,11 @@ export const kartes = pgTable("kartes", {
   content: text("content").notNull(),
   nextAction: text("next_action"),
   
+  // Guidance classification fields
+  guidanceItem: varchar("guidance_item"),
+  guidanceCategory: varchar("guidance_category"),
+  guidanceContent: varchar("guidance_content"),
+  
   createdBy: varchar("created_by").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedBy: varchar("updated_by").references(() => users.id),
