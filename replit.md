@@ -14,6 +14,9 @@ This is a customer relationship management (CRM) system designed specifically fo
 - Fixed CSV export to properly emit headers even for empty result sets
 - Fixed Neon Serverless WebSocket configuration to enable database connectivity
 - Implemented office code input validation: numeric-only, maximum 5 digits with real-time filtering
+- Added "その他" (Other) option to company type selection
+- Extended phone numbers from 1 to 5 fields (電話番号1〜5) with note fields for department/purpose
+  - Note: Phone note fields are not included in CSV export as requested
 
 ## User Preferences
 

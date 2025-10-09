@@ -73,7 +73,16 @@ export default function OfficeFormPage() {
       capital: undefined,
       corporateNumber: "",
       invoiceNumber: "",
-      phone: "",
+      phone1: "",
+      phone1Note: "",
+      phone2: "",
+      phone2Note: "",
+      phone3: "",
+      phone3Note: "",
+      phone4: "",
+      phone4Note: "",
+      phone5: "",
+      phone5Note: "",
       representativeMobile: "",
       industry: "",
       employees: undefined,
@@ -113,7 +122,16 @@ export default function OfficeFormPage() {
         capital: office.capital || undefined,
         corporateNumber: office.corporateNumber || "",
         invoiceNumber: office.invoiceNumber || "",
-        phone: office.phone || "",
+        phone1: office.phone1 || "",
+        phone1Note: office.phone1Note || "",
+        phone2: office.phone2 || "",
+        phone2Note: office.phone2Note || "",
+        phone3: office.phone3 || "",
+        phone3Note: office.phone3Note || "",
+        phone4: office.phone4 || "",
+        phone4Note: office.phone4Note || "",
+        phone5: office.phone5 || "",
+        phone5Note: office.phone5Note || "",
         representativeMobile: office.representativeMobile || "",
         industry: office.industry || "",
         employees: office.employees || undefined,
@@ -323,19 +341,53 @@ export default function OfficeFormPage() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>電話番号</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} type="tel" placeholder="例：03-1234-5678" data-testid="input-phone" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Phone Numbers Section */}
+                <div className="md:col-span-2">
+                  <h3 className="text-sm font-medium mb-3">電話番号</h3>
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4, 5].map((num) => (
+                      <div key={num} className="flex gap-2 items-start">
+                        <FormField
+                          control={form.control}
+                          name={`phone${num}` as any}
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel className="text-xs">電話番号{num}</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  value={field.value || ""} 
+                                  type="tel" 
+                                  placeholder="例：03-1234-5678" 
+                                  data-testid={`input-phone${num}`}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`phone${num}Note` as any}
+                          render={({ field }) => (
+                            <FormItem className="w-32">
+                              <FormLabel className="text-xs">備考</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  value={field.value || ""} 
+                                  placeholder="例：営業部" 
+                                  data-testid={`input-phone${num}-note`}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <FormField
                   control={form.control}
                   name="representativeMobile"

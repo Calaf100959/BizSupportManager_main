@@ -49,7 +49,19 @@ export const offices = pgTable("offices", {
   capital: integer("capital"),
   corporateNumber: varchar("corporate_number"),
   invoiceNumber: varchar("invoice_number"),
-  phone: varchar("phone"),
+  
+  // Phone numbers with notes
+  phone1: varchar("phone1"),
+  phone1Note: varchar("phone1_note"),
+  phone2: varchar("phone2"),
+  phone2Note: varchar("phone2_note"),
+  phone3: varchar("phone3"),
+  phone3Note: varchar("phone3_note"),
+  phone4: varchar("phone4"),
+  phone4Note: varchar("phone4_note"),
+  phone5: varchar("phone5"),
+  phone5Note: varchar("phone5_note"),
+  
   representativeMobile: varchar("representative_mobile"),
   
   // Office details
