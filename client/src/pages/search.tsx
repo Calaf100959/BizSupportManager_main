@@ -210,6 +210,11 @@ export default function SearchPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button variant="outline" size="sm" asChild data-testid={`button-view-${office.code}`}>
+                      <Link href={`/office/${office.id}/detail`}>
+                        詳細
+                      </Link>
+                    </Button>
                     <Button variant="ghost" size="icon" asChild data-testid={`button-edit-${office.code}`}>
                       <Link href={`/office/${office.id}`}>
                         <Edit className="h-4 w-4" />
