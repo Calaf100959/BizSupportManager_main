@@ -270,6 +270,7 @@ export default function OfficeFormPage() {
                           <SelectItem value="llc">合同会社</SelectItem>
                           <SelectItem value="partnership">合名会社</SelectItem>
                           <SelectItem value="individual">個人事業主</SelectItem>
+                          <SelectItem value="other">その他</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
