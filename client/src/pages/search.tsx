@@ -227,7 +227,10 @@ export default function SearchPage() {
                 <Label htmlFor="search-code">事業所コード</Label>
                 <Input 
                   id="search-code" 
-                  placeholder="例：OFF-001"
+                  placeholder="例：12345"
+                  maxLength={5}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={searchCode}
                   onChange={(e) => setSearchCode(e.target.value)}
                   data-testid="input-search-code"

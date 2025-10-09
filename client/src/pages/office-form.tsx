@@ -16,7 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const formSchema = insertOfficeSchema.extend({
-  code: z.string().min(1, "事業所コードは必須です"),
+  code: z.string()
+    .min(1, "事業所コードは必須です")
+    .max(5, "事業所コードは5桁以内で入力してください")
+    .regex(/^\d+$/, "事業所コードは数字のみで入力してください"),
   name: z.string().min(1, "事業所名は必須です"),
   representativeName: z.string().optional(),
 });
@@ -183,7 +186,16 @@ export default function OfficeFormPage() {
                     <FormItem>
                       <FormLabel>事業所コード *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="例：OFF-001" data-testid="input-office-code" />
+                        <Input 
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 5);
+                            field.onChange(value);
+                          }}
+                          placeholder="例：12345" 
+                          inputMode="numeric"
+                          data-testid="input-office-code" 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
