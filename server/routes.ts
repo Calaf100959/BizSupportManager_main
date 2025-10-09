@@ -96,6 +96,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Person routes
+  app.get('/api/persons/:id', isAuthenticated, async (req, res) => {
+    try {
+      const person = await storage.getPerson(req.params.id);
+      if (!person) {
+        return res.status(404).json({ message: "Person not found" });
+      }
+      res.json(person);
+    } catch (error) {
+      console.error("Error fetching person:", error);
+      res.status(500).json({ message: "Failed to fetch person" });
+    }
+  });
+
   app.get('/api/offices/:officeId/persons', isAuthenticated, async (req, res) => {
     try {
       const persons = await storage.getPersonsByOffice(req.params.officeId);
@@ -148,6 +161,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Karte routes
+  app.get('/api/kartes/:id', isAuthenticated, async (req, res) => {
+    try {
+      const karte = await storage.getKarte(req.params.id);
+      if (!karte) {
+        return res.status(404).json({ message: "Karte not found" });
+      }
+      res.json(karte);
+    } catch (error) {
+      console.error("Error fetching karte:", error);
+      res.status(500).json({ message: "Failed to fetch karte" });
+    }
+  });
+
   app.get('/api/offices/:officeId/kartes', isAuthenticated, async (req, res) => {
     try {
       const kartes = await storage.getKartesByOffice(req.params.officeId);

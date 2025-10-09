@@ -38,12 +38,14 @@ export interface IStorage {
   
   // Person operations
   createPerson(person: InsertPerson): Promise<Person>;
+  getPerson(id: string): Promise<Person | undefined>;
   getPersonsByOffice(officeId: string): Promise<Person[]>;
   updatePerson(id: string, person: Partial<InsertPerson>): Promise<Person>;
   deletePerson(id: string): Promise<void>;
   
   // Karte operations
   createKarte(karte: InsertKarte): Promise<Karte>;
+  getKarte(id: string): Promise<Karte | undefined>;
   getKartesByOffice(officeId: string): Promise<Karte[]>;
   updateKarte(id: string, karte: Partial<InsertKarte>): Promise<Karte>;
   deleteKarte(id: string): Promise<void>;
@@ -151,6 +153,11 @@ export class DatabaseStorage implements IStorage {
     return person;
   }
 
+  async getPerson(id: string): Promise<Person | undefined> {
+    const [person] = await db.select().from(persons).where(eq(persons.id, id));
+    return person;
+  }
+
   async getPersonsByOffice(officeId: string): Promise<Person[]> {
     return db.select().from(persons).where(eq(persons.officeId, officeId));
   }
@@ -171,6 +178,11 @@ export class DatabaseStorage implements IStorage {
   // Karte operations
   async createKarte(karteData: InsertKarte): Promise<Karte> {
     const [karte] = await db.insert(kartes).values(karteData).returning();
+    return karte;
+  }
+
+  async getKarte(id: string): Promise<Karte | undefined> {
+    const [karte] = await db.select().from(kartes).where(eq(kartes.id, id));
     return karte;
   }
 
