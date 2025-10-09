@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { insertWorklogSchema, type InsertWorklog, type Worklog } from "@shared/schema";
+import { insertWorklogSchema, type InsertWorklog, type Worklog, type Karte, type Office } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -18,19 +18,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Clock, Save, Edit, Trash2 } from "lucide-react";
+import { Clock, Save, Edit, Trash2, FileText } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 
 export default function WorklogPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingWorklog, setEditingWorklog] = useState<Worklog | null>(null);
   const [deleteWorklogId, setDeleteWorklogId] = useState<string | null>(null);
 
   const { data: worklogs = [], isLoading } = useQuery<Worklog[]>({
     queryKey: [`/api/worklogs?date=${selectedDate}`],
+  });
+
+  const { data: kartes = [], isLoading: isLoadingKartes } = useQuery<Karte[]>({
+    queryKey: [`/api/kartes?date=${selectedDate}`],
+  });
+
+  const { data: offices = [] } = useQuery<Office[]>({
+    queryKey: ['/api/offices'],
   });
 
   const form = useForm<InsertWorklog>({
@@ -428,6 +438,54 @@ export default function WorklogPage() {
           </Card>
         </div>
       </div>
+
+      {kartes.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>選択日の経営カルテ</CardTitle>
+            <CardDescription>{selectedDate}に記録されたカルテ</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {isLoadingKartes ? (
+              <div className="text-center py-4 text-muted-foreground">読み込み中...</div>
+            ) : (
+              kartes.map((karte) => {
+                const office = offices.find(o => o.id === karte.officeId);
+                return (
+                  <div 
+                    key={karte.id}
+                    className="border rounded-md p-3 space-y-2 hover-elevate active-elevate-2 cursor-pointer"
+                    onClick={() => setLocation(`/office/${karte.officeId}/karte/${karte.id}`)}
+                    data-testid={`karte-entry-${karte.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <p className="text-sm font-medium truncate">{karte.title}</p>
+                        </div>
+                        {office && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {office.name}
+                          </p>
+                        )}
+                        {karte.content && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                            {karte.content}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant="secondary" className="text-xs shrink-0">
+                        {karte.visitDate}
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <AlertDialog open={!!deleteWorklogId} onOpenChange={(open) => !open && setDeleteWorklogId(null)}>
         <AlertDialogContent>

@@ -27,6 +27,11 @@ This is a customer relationship management (CRM) system designed specifically fo
   - Implemented cascading selection UI: 指導事項 → 指導内容区分 → 指導内容
   - Fixed critical bug: preserved saved guidance values during karte edit operations
   - Uses useRef to track value changes and prevent unwanted resets on form.reset()
+- Integrated kartes display in worklog page based on selected date
+  - Added API endpoint GET /api/kartes?date={date} to fetch kartes by visit date
+  - Worklog page displays kartes summary at the bottom when kartes exist for selected date
+  - Each karte shows title, office name, content preview, and visit date
+  - Clicking a karte navigates to the karte edit page for detailed view/editing
 
 ## User Preferences
 
@@ -66,6 +71,8 @@ Preferred communication style: Simple, everyday language.
    - Time tracking (start time, end time, hours)
    - Office association for work records
    - Create, edit, and delete worklog entries
+   - Integrated karte display: shows kartes for the selected date below worklog entries
+   - Quick navigation to karte details from worklog page
 
 6. **CSV Export (CSV出力)**
    - Export office data with current search filters applied

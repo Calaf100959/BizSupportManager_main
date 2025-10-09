@@ -47,6 +47,7 @@ export interface IStorage {
   createKarte(karte: InsertKarte): Promise<Karte>;
   getKarte(id: string): Promise<Karte | undefined>;
   getKartesByOffice(officeId: string): Promise<Karte[]>;
+  getKartesByDate(date: string): Promise<Karte[]>;
   updateKarte(id: string, karte: Partial<InsertKarte>): Promise<Karte>;
   deleteKarte(id: string): Promise<void>;
   
@@ -192,6 +193,14 @@ export class DatabaseStorage implements IStorage {
       .from(kartes)
       .where(eq(kartes.officeId, officeId))
       .orderBy(sql`${kartes.visitDate} DESC`);
+  }
+
+  async getKartesByDate(date: string): Promise<Karte[]> {
+    return db
+      .select()
+      .from(kartes)
+      .where(eq(kartes.visitDate, date))
+      .orderBy(sql`${kartes.createdAt} DESC`);
   }
 
   async updateKarte(id: string, karteData: Partial<InsertKarte>): Promise<Karte> {

@@ -184,6 +184,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/kartes', isAuthenticated, async (req, res) => {
+    try {
+      const { date } = req.query;
+      if (!date) {
+        return res.status(400).json({ message: "Date parameter is required" });
+      }
+      const kartes = await storage.getKartesByDate(date as string);
+      res.json(kartes);
+    } catch (error) {
+      console.error("Error fetching kartes by date:", error);
+      res.status(500).json({ message: "Failed to fetch kartes" });
+    }
+  });
+
   app.post('/api/kartes', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
