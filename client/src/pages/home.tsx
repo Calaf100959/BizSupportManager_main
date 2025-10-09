@@ -1,29 +1,24 @@
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText, Search, Plus, TrendingUp, Users, AlertCircle } from "lucide-react";
+import { Building2, FileText, Search, Plus, Users } from "lucide-react";
 import { Link } from "wouter";
-import { Badge } from "@/components/ui/badge";
+import { type Office } from "@shared/schema";
 
 export default function HomePage() {
-  //todo: remove mock functionality
+  const { data: offices = [], isLoading } = useQuery<Office[]>({
+    queryKey: ["/api/offices"],
+  });
+
+  const activeOffices = offices.filter(o => o.engagementType === "active");
+
   const stats = [
-    { label: "総事業所数", value: "156", icon: Building2, color: "text-primary" },
-    { label: "関与先", value: "89", icon: Users, color: "text-chart-2" },
-    { label: "今月の支援", value: "23", icon: FileText, color: "text-chart-3" },
+    { label: "総事業所数", value: isLoading ? "-" : offices.length.toString(), icon: Building2, color: "text-primary" },
+    { label: "関与先", value: isLoading ? "-" : activeOffices.length.toString(), icon: Users, color: "text-chart-2" },
+    { label: "登録済", value: isLoading ? "-" : offices.length.toString(), icon: FileText, color: "text-chart-3" },
   ];
 
-  //todo: remove mock functionality
-  const recentActivities = [
-    { office: "株式会社山田商店", action: "経営カルテ更新", date: "2024-01-15", user: "山田太郎" },
-    { office: "田中工業株式会社", action: "新規登録", date: "2024-01-14", user: "佐藤花子" },
-    { office: "鈴木製作所", action: "個人情報追加", date: "2024-01-14", user: "山田太郎" },
-  ];
-
-  //todo: remove mock functionality
-  const notifications = [
-    { type: "warning", message: "契約満了予定：株式会社山田商店（2週間後）" },
-    { type: "info", message: "新規事業所登録が3件あります" },
-  ];
+  const recentOffices = offices.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -76,42 +71,36 @@ export default function HomePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>通知</CardTitle>
-            <CardDescription>重要なお知らせ</CardDescription>
+            <CardTitle>最近登録された事業所</CardTitle>
+            <CardDescription>直近5件の事業所</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {notifications.map((notif, idx) => (
-              <div key={idx} className="flex items-start gap-3" data-testid={`notification-${idx}`}>
-                <AlertCircle className={`h-4 w-4 mt-0.5 ${notif.type === 'warning' ? 'text-chart-3' : 'text-primary'}`} />
-                <p className="text-sm">{notif.message}</p>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-4 text-muted-foreground">読み込み中...</div>
+            ) : recentOffices.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                事業所が登録されていません
               </div>
-            ))}
+            ) : (
+              <div className="space-y-3">
+                {recentOffices.map((office) => (
+                  <Link key={office.id} href={`/office/${office.id}`}>
+                    <div className="flex items-center justify-between border-b pb-3 last:border-0 hover-elevate rounded p-2" data-testid={`recent-office-${office.code}`}>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{office.name}</p>
+                        <p className="text-xs text-muted-foreground">{office.code}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">{office.representativeName || "-"}</p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>最近の活動</CardTitle>
-          <CardDescription>システム内の最新の更新履歴</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {recentActivities.map((activity, idx) => (
-              <div key={idx} className="flex items-center justify-between border-b pb-3 last:border-0" data-testid={`activity-${idx}`}>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{activity.office}</p>
-                  <p className="text-xs text-muted-foreground">{activity.action}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">{activity.date}</p>
-                  <p className="text-xs text-muted-foreground">{activity.user}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

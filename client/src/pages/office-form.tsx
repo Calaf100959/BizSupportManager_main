@@ -1,23 +1,155 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useParams, useLocation } from "wouter";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useLocation } from "wouter";
 import { ArrowLeft, Save } from "lucide-react";
+import { insertOfficeSchema, type Office } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const formSchema = insertOfficeSchema.extend({
+  code: z.string().min(1, "事業所コードは必須です"),
+  name: z.string().min(1, "事業所名は必須です"),
+  representativeName: z.string().optional(),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 export default function OfficeFormPage() {
+  const { id } = useParams();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("basic");
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form submitted");
-    setLocation("/search");
+  const { data: office, isLoading } = useQuery<Office>({
+    queryKey: ["/api/offices", id],
+    enabled: !!id,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: FormData) => apiRequest("/api/offices", "POST", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/offices"] });
+      toast({ title: "事業所を登録しました" });
+      setLocation("/search");
+    },
+    onError: () => {
+      toast({ title: "登録に失敗しました", variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: FormData) => apiRequest(`/api/offices/${id}`, "PATCH", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/offices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/offices", id] });
+      toast({ title: "事業所を更新しました" });
+      setLocation("/search");
+    },
+    onError: () => {
+      toast({ title: "更新に失敗しました", variant: "destructive" });
+    },
+  });
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      code: "",
+      name: "",
+      nameKana: "",
+      representativeName: "",
+      representativeKana: "",
+      companyType: "",
+      capital: undefined,
+      corporateNumber: "",
+      invoiceNumber: "",
+      phone: "",
+      representativeMobile: "",
+      industry: "",
+      employees: undefined,
+      regularEmployees: undefined,
+      companyCategory: "",
+      engagementType: "",
+      engagementDate: null,
+      withdrawalDate: null,
+      withdrawalReason: "",
+      withdrawalReasonDetail: "",
+      closureDate: null,
+      postalCode: "",
+      address: "",
+      foundedDate: null,
+      officePhone: "",
+      fax: "",
+      url: "",
+      email1: "",
+      email2: "",
+      email3: "",
+      sns1: "",
+      sns2: "",
+      sns3: "",
+      referral: "",
+    },
+  });
+
+  useEffect(() => {
+    if (office) {
+      form.reset({
+        code: office.code || "",
+        name: office.name || "",
+        nameKana: office.nameKana || "",
+        representativeName: office.representativeName || "",
+        representativeKana: office.representativeKana || "",
+        companyType: office.companyType || "",
+        capital: office.capital || undefined,
+        corporateNumber: office.corporateNumber || "",
+        invoiceNumber: office.invoiceNumber || "",
+        phone: office.phone || "",
+        representativeMobile: office.representativeMobile || "",
+        industry: office.industry || "",
+        employees: office.employees || undefined,
+        regularEmployees: office.regularEmployees || undefined,
+        companyCategory: office.companyCategory || "",
+        engagementType: office.engagementType || "",
+        engagementDate: office.engagementDate || null,
+        withdrawalDate: office.withdrawalDate || null,
+        withdrawalReason: office.withdrawalReason || "",
+        withdrawalReasonDetail: office.withdrawalReasonDetail || "",
+        closureDate: office.closureDate || null,
+        postalCode: office.postalCode || "",
+        address: office.address || "",
+        foundedDate: office.foundedDate || null,
+        officePhone: office.officePhone || "",
+        fax: office.fax || "",
+        url: office.url || "",
+        email1: office.email1 || "",
+        email2: office.email2 || "",
+        email3: office.email3 || "",
+        sns1: office.sns1 || "",
+        sns2: office.sns2 || "",
+        sns3: office.sns3 || "",
+        referral: office.referral || "",
+      });
+    }
+  }, [office, form]);
+
+  const onSubmit = (data: FormData) => {
+    if (id) {
+      updateMutation.mutate(data);
+    } else {
+      createMutation.mutate(data);
+    }
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-8">読み込み中...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -26,354 +158,569 @@ export default function OfficeFormPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">事業所登録</h1>
-          <p className="text-sm text-muted-foreground">新規事業所の情報を登録します</p>
+          <h1 className="text-2xl font-semibold" data-testid="text-page-title">
+            {id ? "事業所編集" : "事業所登録"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {id ? "事業所の情報を編集します" : "新規事業所の情報を登録します"}
+          </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="basic" data-testid="tab-basic">基本情報</TabsTrigger>
-            <TabsTrigger value="office" data-testid="tab-office">事業所情報</TabsTrigger>
-            <TabsTrigger value="personal" data-testid="tab-personal">個人情報</TabsTrigger>
-          </TabsList>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>基本情報</CardTitle>
+              <CardDescription>事業所の基本的な情報を入力してください</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>事業所コード *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="例：OFF-001" data-testid="input-office-code" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>事業所名 *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="例：株式会社山田商店" data-testid="input-office-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="nameKana"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>フリガナ</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="例：カブシキガイシャヤマダショウテン" data-testid="input-office-kana" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="representativeName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>代表者氏名</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="例：山田太郎" data-testid="input-representative" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="representativeKana"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>代表者フリガナ</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="例：ヤマダタロウ" data-testid="input-rep-kana" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="companyType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>企業形態</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-company-type">
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="corporation">株式会社</SelectItem>
+                          <SelectItem value="llc">合同会社</SelectItem>
+                          <SelectItem value="partnership">合名会社</SelectItem>
+                          <SelectItem value="individual">個人事業主</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="capital"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>資本金（万円）</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          placeholder="例：1000"
+                          data-testid="input-capital"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="corporateNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>法人番号</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="13桁の番号" data-testid="input-corporate-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="invoiceNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>インボイス番号</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="T + 13桁の番号" data-testid="input-invoice-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>電話番号</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="tel" placeholder="例：03-1234-5678" data-testid="input-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="representativeMobile"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>代表者携帯番号</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="tel" placeholder="例：090-1234-5678" data-testid="input-mobile" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="basic" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>基本情報</CardTitle>
-                <CardDescription>事業所の基本的な情報を入力してください</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="office-code">事業所コード *</Label>
-                    <Input id="office-code" placeholder="例：OFF-001" data-testid="input-office-code" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="office-name">事業所名 *</Label>
-                    <Input id="office-name" placeholder="例：株式会社山田商店" data-testid="input-office-name" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="office-kana">フリガナ *</Label>
-                    <Input id="office-kana" placeholder="例：カブシキガイシャヤマダショウテン" data-testid="input-office-kana" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="representative">代表者氏名 *</Label>
-                    <Input id="representative" placeholder="例：山田太郎" data-testid="input-representative" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rep-kana">代表者フリガナ *</Label>
-                    <Input id="rep-kana" placeholder="例：ヤマダタロウ" data-testid="input-rep-kana" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company-type">企業形態</Label>
-                    <Select>
-                      <SelectTrigger id="company-type" data-testid="select-company-type">
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="corporation">株式会社</SelectItem>
-                        <SelectItem value="llc">合同会社</SelectItem>
-                        <SelectItem value="partnership">合名会社</SelectItem>
-                        <SelectItem value="individual">個人事業主</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="capital">資本金（万円）</Label>
-                    <Input id="capital" type="number" placeholder="例：1000" data-testid="input-capital" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="corporate-number">法人番号</Label>
-                    <Input id="corporate-number" placeholder="13桁の番号" data-testid="input-corporate-number" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="invoice-number">インボイス番号</Label>
-                    <Input id="invoice-number" placeholder="T + 13桁の番号" data-testid="input-invoice-number" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">電話番号</Label>
-                    <Input id="phone" type="tel" placeholder="例：03-1234-5678" data-testid="input-phone" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mobile">代表者携帯番号</Label>
-                    <Input id="mobile" type="tel" placeholder="例：090-1234-5678" data-testid="input-mobile" />
-                  </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>事業所情報</CardTitle>
+              <CardDescription>事業所の詳細情報を入力してください</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="industry"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>業種</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-industry">
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="manufacturing">製造業</SelectItem>
+                          <SelectItem value="retail">小売業</SelectItem>
+                          <SelectItem value="service">サービス業</SelectItem>
+                          <SelectItem value="it">情報通信業</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="employees"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>従業員数（人）</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          placeholder="例：50"
+                          data-testid="input-employees"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="regularEmployees"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>常用雇用者数（人）</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          placeholder="例：40"
+                          data-testid="input-regular-employees"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="companyCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>企業区分</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-company-category">
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="small">小規模事業者</SelectItem>
+                          <SelectItem value="medium">中小企業</SelectItem>
+                          <SelectItem value="midsize">中堅企業</SelectItem>
+                          <SelectItem value="large">大企業</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="engagementType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>関与区分</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-engagement-type">
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">関与先</SelectItem>
+                          <SelectItem value="past">（旧）関与先</SelectItem>
+                          <SelectItem value="seminar">セミナー系関与先</SelectItem>
+                          <SelectItem value="onetime">一見先</SelectItem>
+                          <SelectItem value="none">非関与先</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="engagementDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>関与年月日</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="date" data-testid="input-engagement-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="withdrawalDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>離脱年月日</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="date" data-testid="input-withdrawal-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="withdrawalReason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>離脱理由</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-withdrawal-reason">
+                            <SelectValue placeholder="選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="completion">契約満了</SelectItem>
+                          <SelectItem value="closure">廃業・解散・倒産</SelectItem>
+                          <SelectItem value="other">その他</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="withdrawalReasonDetail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>離脱理由（詳細）</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} value={field.value || ""} placeholder="詳細な理由を記入してください" data-testid="textarea-withdrawal-detail" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="office" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>事業所情報</CardTitle>
-                <CardDescription>事業所の詳細情報を入力してください</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="industry">業種</Label>
-                    <Select>
-                      <SelectTrigger id="industry" data-testid="select-industry">
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="manufacturing">製造業</SelectItem>
-                        <SelectItem value="retail">小売業</SelectItem>
-                        <SelectItem value="service">サービス業</SelectItem>
-                        <SelectItem value="it">情報通信業</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="employees">従業員数（人）</Label>
-                    <Input id="employees" type="number" placeholder="例：50" data-testid="input-employees" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="regular-employees">常用雇用者数（人）</Label>
-                    <Input id="regular-employees" type="number" placeholder="例：40" data-testid="input-regular-employees" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company-category">企業区分</Label>
-                    <Select>
-                      <SelectTrigger id="company-category" data-testid="select-company-category">
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="small">小規模事業者</SelectItem>
-                        <SelectItem value="medium">中小企業</SelectItem>
-                        <SelectItem value="midsize">中堅企業</SelectItem>
-                        <SelectItem value="large">大企業</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="engagement-type">関与区分</Label>
-                    <Select>
-                      <SelectTrigger id="engagement-type" data-testid="select-engagement-type">
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">関与先</SelectItem>
-                        <SelectItem value="past">（旧）関与先</SelectItem>
-                        <SelectItem value="seminar">セミナー系関与先</SelectItem>
-                        <SelectItem value="onetime">一見先</SelectItem>
-                        <SelectItem value="none">非関与先</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="engagement-date">関与年月日</Label>
-                    <Input id="engagement-date" type="date" data-testid="input-engagement-date" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="withdrawal-date">離脱年月日</Label>
-                    <Input id="withdrawal-date" type="date" data-testid="input-withdrawal-date" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="withdrawal-reason">離脱理由</Label>
-                    <Select>
-                      <SelectTrigger id="withdrawal-reason" data-testid="select-withdrawal-reason">
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="completion">契約満了</SelectItem>
-                        <SelectItem value="closure">廃業・解散・倒産</SelectItem>
-                        <SelectItem value="other">その他</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="withdrawal-detail">離脱理由（詳細）</Label>
-                    <Textarea id="withdrawal-detail" placeholder="詳細な理由を記入してください" data-testid="textarea-withdrawal-detail" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="closure-date">廃業年月日</Label>
-                    <Input id="closure-date" type="date" data-testid="input-closure-date" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="postal-code">郵便番号</Label>
-                    <Input id="postal-code" placeholder="例：100-0001" data-testid="input-postal-code" />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="address">事業所所在地</Label>
-                    <Input id="address" placeholder="例：東京都千代田区千代田1-1" data-testid="input-address" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="founded-date">創業年月日</Label>
-                    <Input id="founded-date" type="date" data-testid="input-founded-date" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="office-phone">電話番号</Label>
-                    <Input id="office-phone" type="tel" placeholder="例：03-1234-5678" data-testid="input-office-phone" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fax">FAX番号</Label>
-                    <Input id="fax" type="tel" placeholder="例：03-1234-5679" data-testid="input-fax" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="url">URL</Label>
-                    <Input id="url" type="url" placeholder="https://example.com" data-testid="input-url" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email1">メールアドレス1</Label>
-                    <Input id="email1" type="email" placeholder="info@example.com" data-testid="input-email1" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email2">メールアドレス2</Label>
-                    <Input id="email2" type="email" data-testid="input-email2" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email3">メールアドレス3</Label>
-                    <Input id="email3" type="email" data-testid="input-email3" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sns1">SNSアカウント1</Label>
-                    <Input id="sns1" placeholder="例：@company" data-testid="input-sns1" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sns2">SNSアカウント2</Label>
-                    <Input id="sns2" data-testid="input-sns2" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sns3">SNSアカウント3</Label>
-                    <Input id="sns3" data-testid="input-sns3" />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="referral">紹介先</Label>
-                    <Input id="referral" placeholder="紹介元を記入してください" data-testid="input-referral" />
-                  </div>
+                <FormField
+                  control={form.control}
+                  name="closureDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>廃業年月日</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="date" data-testid="input-closure-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="postalCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>郵便番号</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="例：100-0001" data-testid="input-postal-code" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>事業所所在地</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} placeholder="例：東京都千代田区千代田1-1" data-testid="input-address" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="personal" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>個人情報</CardTitle>
-                <CardDescription>事業所に関連する個人情報を入力してください</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="person-code">個人コード</Label>
-                    <Input id="person-code" placeholder="例：PER-001" data-testid="input-person-code" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-name">氏名</Label>
-                    <Input id="person-name" placeholder="例：田中一郎" data-testid="input-person-name" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-kana">フリガナ</Label>
-                    <Input id="person-kana" placeholder="例：タナカイチロウ" data-testid="input-person-kana" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">性別</Label>
-                    <Select>
-                      <SelectTrigger id="gender" data-testid="select-gender">
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">男性</SelectItem>
-                        <SelectItem value="female">女性</SelectItem>
-                        <SelectItem value="other">その他</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="birth-date">生年月日</Label>
-                    <Input id="birth-date" type="date" data-testid="input-birth-date" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-category">個人区分</Label>
-                    <Select>
-                      <SelectTrigger id="person-category" data-testid="select-person-category">
-                        <SelectValue placeholder="選択してください" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="representative">代表者</SelectItem>
-                        <SelectItem value="family">家族</SelectItem>
-                        <SelectItem value="executive">役員</SelectItem>
-                        <SelectItem value="employee">従業員</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-phone">電話番号</Label>
-                    <Input id="person-phone" type="tel" data-testid="input-person-phone" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-fax">FAX番号</Label>
-                    <Input id="person-fax" type="tel" data-testid="input-person-fax" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-mobile">携帯電話</Label>
-                    <Input id="person-mobile" type="tel" data-testid="input-person-mobile" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-email1">メールアドレス1</Label>
-                    <Input id="person-email1" type="email" data-testid="input-person-email1" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-email2">メールアドレス2</Label>
-                    <Input id="person-email2" type="email" data-testid="input-person-email2" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-email3">メールアドレス3</Label>
-                    <Input id="person-email3" type="email" data-testid="input-person-email3" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-sns1">SNSアカウント1</Label>
-                    <Input id="person-sns1" data-testid="input-person-sns1" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-sns2">SNSアカウント2</Label>
-                    <Input id="person-sns2" data-testid="input-person-sns2" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="person-sns3">SNSアカウント3</Label>
-                    <Input id="person-sns3" data-testid="input-person-sns3" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="org1">加入団体1</Label>
-                    <Input id="org1" data-testid="input-org1" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="org2">加入団体2</Label>
-                    <Input id="org2" data-testid="input-org2" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="org3">加入団体3</Label>
-                    <Input id="org3" data-testid="input-org3" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="org4">加入団体4</Label>
-                    <Input id="org4" data-testid="input-org4" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="org5">加入団体5</Label>
-                    <Input id="org5" data-testid="input-org5" />
-                  </div>
+                <FormField
+                  control={form.control}
+                  name="foundedDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>創業年月日</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="date" data-testid="input-founded-date" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="officePhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>電話番号</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="tel" placeholder="例：03-1234-5678" data-testid="input-office-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="fax"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>FAX番号</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="tel" placeholder="例：03-1234-5679" data-testid="input-fax" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>URL</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="url" placeholder="https://example.com" data-testid="input-url" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email1"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>メールアドレス1</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="email" placeholder="info@example.com" data-testid="input-email1" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email2"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>メールアドレス2</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="email" data-testid="input-email2" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email3"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>メールアドレス3</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} type="email" data-testid="input-email3" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sns1"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SNSアカウント1</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} placeholder="例：@company" data-testid="input-sns1" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sns2"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SNSアカウント2</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} data-testid="input-sns2" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sns3"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SNSアカウント3</FormLabel>
+                      <FormControl>
+                        <Input {...field} value={field.value || ""} data-testid="input-sns3" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="referral"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>紹介先</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} placeholder="紹介元を記入してください" data-testid="input-referral" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </CardContent>
+          </Card>
 
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => setLocation("/search")} data-testid="button-cancel">
-            キャンセル
-          </Button>
-          <Button type="submit" data-testid="button-save">
-            <Save className="mr-2 h-4 w-4" />
-            保存
-          </Button>
-        </div>
-      </form>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setLocation("/search")} data-testid="button-cancel">
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-save">
+              <Save className="mr-2 h-4 w-4" />
+              {createMutation.isPending || updateMutation.isPending ? "保存中..." : "保存"}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }
