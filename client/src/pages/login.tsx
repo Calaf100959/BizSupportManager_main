@@ -1,20 +1,10 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
 
 export default function LoginPage() {
-  const [, setLocation] = useLocation();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Login attempt:", username);
-    setLocation("/");
+  const handleLogin = () => {
+    window.location.href = "/api/login";
   };
 
   return (
@@ -30,35 +20,14 @@ export default function LoginPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">ユーザー名</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="ユーザー名を入力"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                data-testid="input-username"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">パスワード</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="パスワードを入力"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                data-testid="input-password"
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" data-testid="button-login">
+          <div className="space-y-4">
+            <p className="text-sm text-center text-muted-foreground">
+              顧客情報と支援履歴を効率的に管理
+            </p>
+            <Button onClick={handleLogin} className="w-full" data-testid="button-login">
               ログイン
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
     </div>

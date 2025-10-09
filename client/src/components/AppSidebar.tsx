@@ -1,4 +1,4 @@
-import { Home, Building2, FileText, ClipboardList, Search, Download, User } from "lucide-react";
+import { Home, Building2, FileText, ClipboardList, Search, Download, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -12,8 +12,9 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const menuItems = [
   {
@@ -50,6 +51,34 @@ const menuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { user } = useAuth();
+
+  const handleLogout = () => {
+    window.location.href = "/api/logout";
+  };
+
+  const getDisplayName = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.lastName} ${user.firstName}`;
+    }
+    if (user?.firstName) {
+      return user.firstName;
+    }
+    if (user?.email) {
+      return user.email;
+    }
+    return "ユーザー";
+  };
+
+  const getInitials = () => {
+    if (user?.lastName) {
+      return user.lastName.substring(0, 2);
+    }
+    if (user?.firstName) {
+      return user.firstName.substring(0, 2);
+    }
+    return "U";
+  };
 
   return (
     <Sidebar>
@@ -86,14 +115,15 @@ export function AppSidebar() {
       <SidebarFooter className="p-4">
         <div className="flex items-center gap-3">
           <Avatar>
-            <AvatarFallback>山田</AvatarFallback>
+            {user?.profileImageUrl && <AvatarImage src={user.profileImageUrl} alt={getDisplayName()} />}
+            <AvatarFallback>{getInitials()}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-sm font-medium truncate">山田太郎</span>
+            <span className="text-sm font-medium truncate">{getDisplayName()}</span>
             <span className="text-xs text-muted-foreground truncate">診断士</span>
           </div>
-          <Button variant="ghost" size="icon" data-testid="button-logout">
-            <User className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={handleLogout} data-testid="button-logout">
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </SidebarFooter>
