@@ -21,6 +21,12 @@ This is a customer relationship management (CRM) system designed specifically fo
   - Office selection now pulls from actual registered offices via API
   - Karte history displays actual records for selected office
   - Created kartes are properly saved and linked to selected office
+- Implemented hierarchical guidance classification system for kartes (指導分類)
+  - Parsed CSV master data (11 guidance items, 65 categories, 324 contents) to JSON format
+  - Added 3 new fields to kartes table: guidanceItem, guidanceCategory, guidanceContent
+  - Implemented cascading selection UI: 指導事項 → 指導内容区分 → 指導内容
+  - Fixed critical bug: preserved saved guidance values during karte edit operations
+  - Uses useRef to track value changes and prevent unwanted resets on form.reset()
 
 ## User Preferences
 
@@ -49,6 +55,11 @@ Preferred communication style: Simple, everyday language.
    - Medical chart-style business consultation records
    - Track visit dates, titles, content, and next actions
    - Historical record of all consultations per office
+   - Hierarchical guidance classification system (指導分類):
+     - 11 guidance items (指導事項): 経営革新, 経営一般, 情報化, 金融, 税務, 労働, 取引, 環境対策, 事業承継, 事業廃止, その他
+     - 65 guidance categories (指導内容区分) filtered by selected item
+     - 324 guidance contents (指導内容) filtered by selected category
+     - Cascading selection UI preserves values during edit operations
 
 5. **Worklog (業務日誌)**
    - Daily activity logs with date-based filtering

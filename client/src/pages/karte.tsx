@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { FileText } from "lucide-react";
 import { type Office, type Karte, type InsertKarte } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import karteMasterData from "@shared/data/karte-master.json";
 
 export default function KartePage() {
   const [, setLocation] = useLocation();
@@ -21,6 +22,27 @@ export default function KartePage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [nextAction, setNextAction] = useState("");
+  const [guidanceItem, setGuidanceItem] = useState("");
+  const [guidanceCategory, setGuidanceCategory] = useState("");
+  const [guidanceContent, setGuidanceContent] = useState("");
+
+  // Filter guidance categories based on selected item
+  const availableCategories = useMemo(() => {
+    if (!guidanceItem) return [];
+    return karteMasterData.guidanceCategories.filter(
+      (cat) => cat.itemCode === guidanceItem
+    );
+  }, [guidanceItem]);
+
+  // Filter guidance contents based on selected item and category
+  const availableContents = useMemo(() => {
+    if (!guidanceItem || !guidanceCategory) return [];
+    return karteMasterData.guidanceContents.filter(
+      (content) =>
+        content.itemCode === guidanceItem &&
+        content.categoryCode === guidanceCategory
+    );
+  }, [guidanceItem, guidanceCategory]);
 
   const { data: offices, isLoading: isLoadingOffices } = useQuery<Office[]>({
     queryKey: ["/api/offices"],
@@ -43,6 +65,9 @@ export default function KartePage() {
       setTitle("");
       setContent("");
       setNextAction("");
+      setGuidanceItem("");
+      setGuidanceCategory("");
+      setGuidanceContent("");
       if (selectedOffice) {
         setLocation(`/office/${selectedOffice}/detail`);
       }
@@ -72,6 +97,9 @@ export default function KartePage() {
       title,
       content,
       nextAction: nextAction || null,
+      guidanceItem: guidanceItem || null,
+      guidanceCategory: guidanceCategory || null,
+      guidanceContent: guidanceContent || null,
       createdBy: "",
     });
   };
@@ -159,6 +187,81 @@ export default function KartePage() {
                     data-testid="textarea-karte-next"
                   />
                 </div>
+
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="text-sm font-medium">指導分類</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="guidance-item">指導事項</Label>
+                      <Select 
+                        value={guidanceItem} 
+                        onValueChange={(value) => {
+                          setGuidanceItem(value);
+                          setGuidanceCategory("");
+                          setGuidanceContent("");
+                        }}
+                      >
+                        <SelectTrigger id="guidance-item" data-testid="select-guidance-item">
+                          <SelectValue placeholder="選択してください" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {karteMasterData.guidanceItems.map((item) => (
+                            <SelectItem key={item.code} value={item.code}>
+                              {item.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="guidance-category">指導内容区分</Label>
+                      <Select 
+                        value={guidanceCategory} 
+                        onValueChange={(value) => {
+                          setGuidanceCategory(value);
+                          setGuidanceContent("");
+                        }}
+                        disabled={!guidanceItem}
+                      >
+                        <SelectTrigger id="guidance-category" data-testid="select-guidance-category">
+                          <SelectValue placeholder="選択してください" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableCategories.map((category) => (
+                            <SelectItem key={`${category.itemCode}-${category.code}`} value={category.code}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="guidance-content">指導内容</Label>
+                      <Select 
+                        value={guidanceContent} 
+                        onValueChange={setGuidanceContent}
+                        disabled={!guidanceCategory}
+                      >
+                        <SelectTrigger id="guidance-content" data-testid="select-guidance-content">
+                          <SelectValue placeholder="選択してください" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableContents.map((content) => (
+                            <SelectItem 
+                              key={`${content.itemCode}-${content.categoryCode}-${content.code}`} 
+                              value={content.code}
+                            >
+                              {content.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end gap-3">
                   <Button 
                     type="button" 
@@ -168,6 +271,9 @@ export default function KartePage() {
                       setTitle("");
                       setContent("");
                       setNextAction("");
+                      setGuidanceItem("");
+                      setGuidanceCategory("");
+                      setGuidanceContent("");
                     }}
                     data-testid="button-cancel"
                   >
