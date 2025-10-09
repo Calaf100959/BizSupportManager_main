@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,17 +16,63 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Plus, Edit, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Search, Plus, Edit, Trash2, Download } from "lucide-react";
 import { Link } from "wouter";
 import { type Office } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+// Available fields for CSV export
+const csvFields = [
+  { key: 'code', label: '事業所コード' },
+  { key: 'name', label: '事業所名' },
+  { key: 'nameKana', label: 'フリガナ' },
+  { key: 'representativeName', label: '代表者氏名' },
+  { key: 'representativeKana', label: '代表者フリガナ' },
+  { key: 'companyType', label: '会社区分' },
+  { key: 'capital', label: '資本金' },
+  { key: 'corporateNumber', label: '法人番号' },
+  { key: 'invoiceNumber', label: 'インボイス番号' },
+  { key: 'phone', label: '電話番号' },
+  { key: 'representativeMobile', label: '代表者携帯' },
+  { key: 'industry', label: '業種' },
+  { key: 'employees', label: '従業員数' },
+  { key: 'regularEmployees', label: '正社員数' },
+  { key: 'companyCategory', label: '会社区分' },
+  { key: 'engagementType', label: '関与区分' },
+  { key: 'engagementDate', label: '関与開始日' },
+  { key: 'withdrawalDate', label: '関与終了日' },
+  { key: 'withdrawalReason', label: '関与終了理由' },
+  { key: 'closureDate', label: '廃業日' },
+  { key: 'postalCode', label: '郵便番号' },
+  { key: 'address', label: '住所' },
+  { key: 'email', label: 'メールアドレス' },
+  { key: 'website', label: 'ホームページ' },
+  { key: 'bankName', label: '金融機関名' },
+  { key: 'bankBranch', label: '支店名' },
+  { key: 'accountType', label: '口座種別' },
+  { key: 'accountNumber', label: '口座番号' },
+  { key: 'accountHolder', label: '口座名義' },
+  { key: 'notes', label: '備考' },
+];
 
 export default function SearchPage() {
   const [searchCode, setSearchCode] = useState("");
   const [searchName, setSearchName] = useState("");
   const [searchRep, setSearchRep] = useState("");
   const [deleteOfficeId, setDeleteOfficeId] = useState<string | null>(null);
+  const [showCsvDialog, setShowCsvDialog] = useState(false);
+  const [selectedFields, setSelectedFields] = useState<string[]>([
+    'code', 'name', 'representativeName', 'industry', 'engagementType'
+  ]);
   const { toast } = useToast();
 
   const searchParams = {
@@ -71,6 +118,56 @@ export default function SearchPage() {
     setSearchName("");
     setSearchRep("");
     queryClient.invalidateQueries({ queryKey: ["/api/offices"] });
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (searchCode) params.set('code', searchCode);
+      if (searchName) params.set('name', searchName);
+      if (searchRep) params.set('representative', searchRep);
+      if (selectedFields.length > 0) {
+        params.set('fields', selectedFields.join(','));
+      }
+      
+      const url = `/api/export/offices?${params.toString()}`;
+      const response = await fetch(url, { credentials: "include" });
+      
+      if (!response.ok) {
+        throw new Error('CSV export failed');
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `offices_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      setShowCsvDialog(false);
+      toast({ title: "CSVファイルをダウンロードしました" });
+    } catch (error) {
+      toast({ title: "CSVエクスポートに失敗しました", variant: "destructive" });
+    }
+  };
+
+  const toggleField = (key: string) => {
+    setSelectedFields(prev => 
+      prev.includes(key) 
+        ? prev.filter(f => f !== key)
+        : [...prev, key]
+    );
+  };
+
+  const selectAllFields = () => {
+    setSelectedFields(csvFields.map(f => f.key));
+  };
+
+  const deselectAllFields = () => {
+    setSelectedFields([]);
   };
 
   const getEngagementBadgeVariant = (type: string | null) => {
@@ -172,10 +269,24 @@ export default function SearchPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>検索結果</CardTitle>
-          <CardDescription>
-            {isLoading ? "検索中..." : `${offices.length}件の事業所が見つかりました`}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle>検索結果</CardTitle>
+              <CardDescription>
+                {isLoading ? "検索中..." : `${offices.length}件の事業所が見つかりました`}
+              </CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowCsvDialog(true)}
+              disabled={offices.length === 0}
+              data-testid="button-export-csv"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              CSV出力
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -255,6 +366,83 @@ export default function SearchPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showCsvDialog} onOpenChange={setShowCsvDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>CSV出力</DialogTitle>
+            <DialogDescription>
+              出力する項目を選択してください。現在の検索条件でフィルタリングされたデータが出力されます。
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={selectAllFields}
+                  data-testid="button-select-all"
+                >
+                  全て選択
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={deselectAllFields}
+                  data-testid="button-deselect-all"
+                >
+                  全て解除
+                </Button>
+                <div className="flex-1 text-sm text-muted-foreground text-right">
+                  {selectedFields.length}項目選択中
+                </div>
+              </div>
+              
+              <div className="grid gap-3 md:grid-cols-2">
+                {csvFields.map(field => (
+                  <div 
+                    key={field.key} 
+                    className="flex items-center gap-2"
+                  >
+                    <Checkbox
+                      id={`field-${field.key}`}
+                      checked={selectedFields.includes(field.key)}
+                      onCheckedChange={() => toggleField(field.key)}
+                      data-testid={`checkbox-field-${field.key}`}
+                    />
+                    <Label 
+                      htmlFor={`field-${field.key}`}
+                      className="cursor-pointer text-sm"
+                    >
+                      {field.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCsvDialog(false)}
+              data-testid="button-cancel-csv"
+            >
+              キャンセル
+            </Button>
+            <Button 
+              onClick={handleExportCsv}
+              disabled={selectedFields.length === 0}
+              data-testid="button-download-csv"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              ダウンロード
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

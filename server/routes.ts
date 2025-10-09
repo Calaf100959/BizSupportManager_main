@@ -286,36 +286,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CSV export route
   app.get('/api/export/offices', isAuthenticated, async (req, res) => {
     try {
-      const { engagementType, fields } = req.query;
-      let offices = await storage.getAllOffices();
+      const { code, name, representative, fields } = req.query;
       
-      // Filter by engagement type if specified
-      if (engagementType && engagementType !== 'all') {
-        offices = offices.filter(o => o.engagementType === engagementType);
-      }
-
-      // Select only requested fields
-      const selectedFields = fields ? (fields as string).split(',') : [];
-      const csvData = offices.map(office => {
-        const row: any = {};
-        selectedFields.forEach(field => {
-          row[field] = (office as any)[field] || '';
-        });
-        return row;
+      // Use search to filter offices
+      const offices = await storage.searchOffices({
+        code: code as string,
+        name: name as string,
+        representative: representative as string,
       });
 
+      // Define field labels in Japanese
+      const fieldLabels: Record<string, string> = {
+        code: '事業所コード',
+        name: '事業所名',
+        nameKana: 'フリガナ',
+        representativeName: '代表者氏名',
+        representativeKana: '代表者フリガナ',
+        companyType: '会社区分',
+        capital: '資本金',
+        corporateNumber: '法人番号',
+        invoiceNumber: 'インボイス番号',
+        phone: '電話番号',
+        representativeMobile: '代表者携帯',
+        industry: '業種',
+        employees: '従業員数',
+        regularEmployees: '正社員数',
+        companyCategory: '会社区分',
+        engagementType: '関与区分',
+        engagementDate: '関与開始日',
+        withdrawalDate: '関与終了日',
+        withdrawalReason: '関与終了理由',
+        closureDate: '廃業日',
+        postalCode: '郵便番号',
+        address: '住所',
+        email: 'メールアドレス',
+        website: 'ホームページ',
+        bankName: '金融機関名',
+        bankBranch: '支店名',
+        accountType: '口座種別',
+        accountNumber: '口座番号',
+        accountHolder: '口座名義',
+        notes: '備考'
+      };
+
+      // Parse selected fields
+      const selectedFields = fields ? (fields as string).split(',') : Object.keys(fieldLabels);
+
+      // Helper function to escape CSV values
+      const escapeCsv = (value: any): string => {
+        if (value === null || value === undefined) return '';
+        const str = String(value);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
       // Convert to CSV format
-      if (csvData.length > 0) {
-        const headers = Object.keys(csvData[0]).join(',');
-        const rows = csvData.map(row => Object.values(row).join(',')).join('\n');
-        const csv = `${headers}\n${rows}`;
-        
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Content-Disposition', 'attachment; filename=offices.csv');
-        res.send('\ufeff' + csv); // Add BOM for Excel
-      } else {
-        res.status(404).json({ message: "No data to export" });
-      }
+      const headers = selectedFields.map(field => fieldLabels[field] || field).join(',');
+      const rows = offices.map(office => 
+        selectedFields.map(field => escapeCsv((office as any)[field])).join(',')
+      ).join('\n');
+      const csv = offices.length > 0 ? `${headers}\n${rows}` : `${headers}\n`;
+      
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=offices.csv');
+      res.send('\ufeff' + csv); // Add BOM for Excel
     } catch (error) {
       console.error("Error exporting CSV:", error);
       res.status(500).json({ message: "Failed to export CSV" });
