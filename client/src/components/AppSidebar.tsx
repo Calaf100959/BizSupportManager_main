@@ -1,4 +1,4 @@
-import { Home, Building2, FileText, ClipboardList, Search, Download, LogOut } from "lucide-react";
+import { Home, Building2, FileText, ClipboardList, Search, Download, LogOut, BookOpen } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -41,6 +41,11 @@ const menuItems = [
     title: "業務日誌",
     url: "/worklog",
     icon: ClipboardList,
+  },
+  {
+    title: "補助金管理",
+    url: "/subsidy-programs",
+    icon: BookOpen,
   },
   {
     title: "CSV出力",

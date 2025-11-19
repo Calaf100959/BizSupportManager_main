@@ -17,6 +17,7 @@ import KarteFormPage from "@/pages/karte-form";
 import ExportPage from "@/pages/export";
 import KartePage from "@/pages/karte";
 import WorklogPage from "@/pages/worklog";
+import SubsidyProgramsPage from "@/pages/subsidy-programs";
 
 function AuthenticatedApp() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -61,6 +62,7 @@ function AuthenticatedApp() {
               <Route path="/export" component={ExportPage} />
               <Route path="/karte" component={KartePage} />
               <Route path="/worklog" component={WorklogPage} />
+              <Route path="/subsidy-programs" component={SubsidyProgramsPage} />
               <Route component={NotFound} />
             </Switch>
           </main>
