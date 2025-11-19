@@ -43,7 +43,7 @@ import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Cale
 import { type Office, type Person, type Karte, type OfficeSubsidyRecord, type SubsidyProgram, insertOfficeSubsidyRecordSchema, type InsertOfficeSubsidyRecord, type AuditLog } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -96,6 +96,13 @@ export default function OfficeDetailPage() {
       notes: "",
     },
   });
+
+  // Update officeId when it changes
+  useEffect(() => {
+    if (officeId && !editingSubsidy) {
+      subsidyForm.setValue("officeId", officeId);
+    }
+  }, [officeId, subsidyForm, editingSubsidy]);
 
   const deletePersonMutation = useMutation({
     mutationFn: (personId: string) => apiRequest(`/api/persons/${personId}`, "DELETE"),
@@ -186,8 +193,17 @@ export default function OfficeDetailPage() {
   });
 
   const onSubsidySubmit = (data: InsertOfficeSubsidyRecord) => {
+    // Validate officeId is available
+    if (!officeId) {
+      toast({
+        title: "エラー",
+        description: "事業所情報が取得できません",
+        variant: "destructive",
+      });
+      return;
+    }
     // Ensure we always use the current officeId
-    const safeData = { ...data, officeId: officeId || "" };
+    const safeData = { ...data, officeId };
     if (editingSubsidy) {
       // Exclude read-only fields from PATCH request
       const { officeId: _, ...updateFields } = safeData;
