@@ -18,6 +18,7 @@ import ExportPage from "@/pages/export";
 import KartePage from "@/pages/karte";
 import WorklogPage from "@/pages/worklog";
 import SubsidyProgramsPage from "@/pages/subsidy-programs";
+import HealthSnapshotPage from "@/pages/health-snapshot";
 
 function AuthenticatedApp() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -52,6 +53,7 @@ function AuthenticatedApp() {
             <Switch>
               <Route path="/" component={HomePage} />
               <Route path="/search" component={SearchPage} />
+              <Route path="/health-snapshot" component={HealthSnapshotPage} />
               <Route path="/office/new" component={OfficeFormPage} />
               <Route path="/office/:officeId/detail" component={OfficeDetailPage} />
               <Route path="/office/:officeId/person/new" component={PersonFormPage} />

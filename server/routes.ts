@@ -302,38 +302,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard routes
   app.get('/api/dashboard/visit-reminders', isAuthenticated, async (req, res) => {
     try {
-      // Get all kartes with nextVisitDate set
       const offices = await storage.getAllOffices();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
       
       // Get kartes for each office
       const kartesPromises = offices.map(o => storage.getKartesByOffice(o.id));
       const allKartes = await Promise.all(kartesPromises);
       
+      // For each office, find the earliest upcoming visit (future or today)
       const reminders: any[] = [];
       allKartes.forEach((kartes, index) => {
-        // Find the latest karte with nextVisitDate
-        const karteWithNextVisit = kartes.find(k => k.nextVisitDate);
-        if (karteWithNextVisit) {
+        // Filter kartes with nextVisitDate set and not in the past
+        const upcomingKartes = kartes.filter(k => {
+          if (!k.nextVisitDate) return false;
+          const visitDate = new Date(k.nextVisitDate);
+          visitDate.setHours(0, 0, 0, 0);
+          return visitDate >= today;
+        });
+        
+        if (upcomingKartes.length > 0) {
+          // Sort by nextVisitDate and take the earliest one
+          upcomingKartes.sort((a, b) => {
+            const dateA = new Date(a.nextVisitDate!);
+            const dateB = new Date(b.nextVisitDate!);
+            return dateA.getTime() - dateB.getTime();
+          });
+          
+          const earliestKarte = upcomingKartes[0];
           reminders.push({
             officeId: offices[index].id,
             officeName: offices[index].name,
-            karteId: karteWithNextVisit.id,
-            karteTitle: karteWithNextVisit.title,
-            visitDate: karteWithNextVisit.visitDate,
-            nextAction: karteWithNextVisit.nextAction || "",
-            nextVisitDate: karteWithNextVisit.nextVisitDate
+            karteId: earliestKarte.id,
+            karteTitle: earliestKarte.title,
+            visitDate: earliestKarte.visitDate,
+            nextAction: earliestKarte.nextAction || "",
+            nextVisitDate: earliestKarte.nextVisitDate
           });
         }
       });
       
-      // Sort by nextVisitDate ascending (upcoming visits first)
+      // Sort all reminders by nextVisitDate ascending (upcoming visits first)
       reminders.sort((a, b) => {
         const dateA = new Date(a.nextVisitDate);
         const dateB = new Date(b.nextVisitDate);
         return dateA.getTime() - dateB.getTime();
       });
       
-      res.json(reminders.slice(0, 10)); // Return top 10
+      // Return top 10 upcoming visits
+      res.json(reminders.slice(0, 10));
     } catch (error) {
       console.error("Error fetching visit reminders:", error);
       res.status(500).json({ message: "Failed to fetch visit reminders" });

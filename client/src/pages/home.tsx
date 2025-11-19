@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Building2, FileText, Search, Plus, Users, Calendar, Clock, AlertCircle, TrendingUp, BookOpen } from "lucide-react";
 import { Link } from "wouter";
 import { type Office } from "@shared/schema";
+import { getHealthStatusInfo } from "@/lib/utils";
 
 interface ActivitySummary {
   period: string;
@@ -66,16 +67,12 @@ export default function HomePage() {
   ];
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">健全</Badge>;
-      case 'warning':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">注意</Badge>;
-      case 'critical':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">要対応</Badge>;
-      default:
-        return <Badge variant="outline">不明</Badge>;
-    }
+    const statusInfo = getHealthStatusInfo(status);
+    return (
+      <Badge variant="outline" className={statusInfo.className}>
+        {statusInfo.label}
+      </Badge>
+    );
   };
 
   return (
@@ -244,8 +241,17 @@ export default function HomePage() {
       {/* Health Snapshot */}
       <Card>
         <CardHeader>
-          <CardTitle>関与先健全性スナップショット</CardTitle>
-          <CardDescription>最終訪問日からの経過に基づく状態表示</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>関与先健全性スナップショット</CardTitle>
+              <CardDescription>最終訪問日からの経過に基づく状態表示</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild data-testid="button-view-all-health">
+              <Link href="/health-snapshot">
+                すべて表示
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {healthLoading ? (
