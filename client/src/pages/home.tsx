@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Building2, FileText, Search, Plus, Users, Calendar, Clock, AlertCircle, TrendingUp, BookOpen } from "lucide-react";
 import { Link } from "wouter";
 import { type Office } from "@shared/schema";
@@ -37,17 +38,17 @@ export default function HomePage() {
     queryKey: ["/api/offices"],
   });
 
-  const { data: activitySummary } = useQuery<ActivitySummary>({
+  const { data: activitySummary, isLoading: activityLoading } = useQuery<ActivitySummary>({
     queryKey: ["/api/dashboard/activity-summary"],
     refetchInterval: 60000, // Refresh every minute
   });
 
-  const { data: healthSnapshot = [] } = useQuery<HealthSnapshot[]>({
+  const { data: healthSnapshot = [], isLoading: healthLoading } = useQuery<HealthSnapshot[]>({
     queryKey: ["/api/dashboard/health-snapshot"],
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
-  const { data: visitReminders = [] } = useQuery<VisitReminder[]>({
+  const { data: visitReminders = [], isLoading: remindersLoading } = useQuery<VisitReminder[]>({
     queryKey: ["/api/dashboard/visit-reminders"],
     refetchInterval: 300000,
   });
@@ -92,25 +93,48 @@ export default function HomePage() {
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid={`stat-${stat.label}`}>{stat.value}</div>
+              {(stat.label === "総事業所数" || stat.label === "関与先") && isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (stat.label === "今週の訪問") && activityLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (stat.label === "要フォロー") && healthLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-2xl font-bold" data-testid={`stat-${stat.label}`}>{stat.value}</div>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Activity Summary */}
-      {activitySummary && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              活動サマリー（今週）
-            </CardTitle>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            活動サマリー（今週）
+          </CardTitle>
+          {activityLoading ? (
+            <Skeleton className="h-4 w-48" />
+          ) : activitySummary ? (
             <CardDescription>
               {activitySummary.startDate} 〜 {activitySummary.endDate}
             </CardDescription>
-          </CardHeader>
-          <CardContent>
+          ) : null}
+        </CardHeader>
+        <CardContent>
+          {activityLoading ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <Skeleton className="h-4 w-16 mb-2" />
+                <Skeleton className="h-9 w-20" />
+              </div>
+              <div>
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-9 w-24" />
+              </div>
+            </div>
+          ) : activitySummary ? (
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <p className="text-sm text-muted-foreground">訪問件数</p>
@@ -121,9 +145,11 @@ export default function HomePage() {
                 <p className="text-3xl font-bold">{activitySummary.totalHours}時間</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-sm text-muted-foreground">データがありません</p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Quick Actions */}
@@ -173,7 +199,16 @@ export default function HomePage() {
             <CardDescription>次回アクションが設定されている事業所</CardDescription>
           </CardHeader>
           <CardContent>
-            {visitReminders.length === 0 ? (
+            {remindersLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-64" />
+                  </div>
+                ))}
+              </div>
+            ) : visitReminders.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
                 予定はありません
               </div>
@@ -200,36 +235,49 @@ export default function HomePage() {
           <CardDescription>最終訪問日からの経過に基づく状態表示</CardDescription>
         </CardHeader>
         <CardContent>
-          {healthSnapshot.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">
-              データがありません
+          {healthLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
+                  <Skeleton className="h-5 w-16" />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {healthSnapshot
-                .filter(h => h.status !== 'healthy')
-                .slice(0, 10)
-                .map((snapshot) => (
-                  <Link key={snapshot.officeId} href={`/office/${snapshot.officeId}`}>
-                    <div className="flex items-center justify-between border-b pb-3 last:border-0 hover-elevate rounded p-2" data-testid={`health-snapshot-${snapshot.officeId}`}>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{snapshot.officeName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {snapshot.lastVisitDate 
-                            ? `最終訪問: ${snapshot.lastVisitDate} (${snapshot.daysSinceVisit}日前)`
-                            : '訪問記録なし'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        {getStatusBadge(snapshot.status)}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              {healthSnapshot.filter(h => h.status !== 'healthy').length === 0 && (
+              {healthSnapshot.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  データがありません
+                </div>
+              ) : healthSnapshot.filter(h => h.status !== 'healthy').length === 0 ? (
                 <div className="text-center py-4 text-muted-foreground">
                   すべての関与先が健全な状態です
                 </div>
+              ) : (
+                healthSnapshot
+                  .filter(h => h.status !== 'healthy')
+                  .slice(0, 10)
+                  .map((snapshot) => (
+                    <Link key={snapshot.officeId} href={`/office/${snapshot.officeId}`}>
+                      <div className="flex items-center justify-between border-b pb-3 last:border-0 hover-elevate rounded p-2" data-testid={`health-snapshot-${snapshot.officeId}`}>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">{snapshot.officeName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {snapshot.lastVisitDate 
+                              ? `最終訪問: ${snapshot.lastVisitDate} (${snapshot.daysSinceVisit}日前)`
+                              : '訪問記録なし'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          {getStatusBadge(snapshot.status)}
+                        </div>
+                      </div>
+                    </Link>
+                  ))
               )}
             </div>
           )}

@@ -229,7 +229,7 @@ export default function SubsidyProgramsPage() {
                 />
 
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
+                  <Button type="button" variant="outline" onClick={() => handleDialogClose(false)} data-testid="button-cancel">
                     キャンセル
                   </Button>
                   <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-save">
