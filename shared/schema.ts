@@ -260,7 +260,9 @@ export const officeSubsidyRecords = pgTable("office_subsidy_records", {
 
 export const insertOfficeSubsidyRecordSchema = createInsertSchema(officeSubsidyRecords).omit({
   id: true,
+  createdBy: true,
   createdAt: true,
+  updatedBy: true,
   updatedAt: true,
 });
 
