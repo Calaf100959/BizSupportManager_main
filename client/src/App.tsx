@@ -19,6 +19,7 @@ import KartePage from "@/pages/karte";
 import WorklogPage from "@/pages/worklog";
 import SubsidyProgramsPage from "@/pages/subsidy-programs";
 import HealthSnapshotPage from "@/pages/health-snapshot";
+import VisitRemindersPage from "@/pages/visit-reminders";
 
 function AuthenticatedApp() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -54,6 +55,7 @@ function AuthenticatedApp() {
               <Route path="/" component={HomePage} />
               <Route path="/search" component={SearchPage} />
               <Route path="/health-snapshot" component={HealthSnapshotPage} />
+              <Route path="/visit-reminders" component={VisitRemindersPage} />
               <Route path="/office/new" component={OfficeFormPage} />
               <Route path="/office/:officeId/detail" component={OfficeDetailPage} />
               <Route path="/office/:officeId/person/new" component={PersonFormPage} />

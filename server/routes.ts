@@ -305,6 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offices = await storage.getAllOffices();
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+      const showAll = req.query.all === 'true';
       
       // Get kartes for each office
       const kartesPromises = offices.map(o => storage.getKartesByOffice(o.id));
@@ -349,8 +350,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return dateA.getTime() - dateB.getTime();
       });
       
-      // Return top 10 upcoming visits
-      res.json(reminders.slice(0, 10));
+      // Return all reminders if showAll=true, otherwise top 10
+      res.json(showAll ? reminders : reminders.slice(0, 10));
     } catch (error) {
       console.error("Error fetching visit reminders:", error);
       res.status(500).json({ message: "Failed to fetch visit reminders" });

@@ -193,8 +193,17 @@ export default function HomePage() {
         {/* Visit Reminders */}
         <Card>
           <CardHeader>
-            <CardTitle>訪問予定リマインダー</CardTitle>
-            <CardDescription>次回訪問予定日が設定されている事業所（直近10件）</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>訪問予定リマインダー</CardTitle>
+                <CardDescription>次回訪問予定日が設定されている事業所（直近10件）</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" asChild data-testid="button-view-all-reminders">
+                <Link href="/visit-reminders">
+                  すべて表示
+                </Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {remindersLoading ? (
