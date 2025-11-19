@@ -28,6 +28,17 @@ This is a customer relationship management (CRM) system designed specifically fo
   - Returns label and dark-mode-aware className for health status badges
   - Shared between home.tsx and health-snapshot.tsx to reduce code duplication
   - Consistent badge styling: green (healthy), yellow (warning), red (critical)
+- Implemented visit reminders detail page functionality
+  - Created dedicated detail page at `/visit-reminders` accessible via "すべて表示" button in visit reminders card
+  - Displays all upcoming visit reminders without the 10-item limit
+  - API enhanced with `?all=true` query parameter for full list retrieval
+  - Urgency-based badge color coding: red (overdue), orange (today), yellow (within 3 days), blue (within 7 days), gray (later)
+  - Each reminder displays office name, karte title, next visit date, urgency badge, and next action
+  - Click-through navigation to karte edit page (`/office/:officeId/karte/:karteId`)
+  - SEO metadata with Open Graph tags for social media sharing
+  - Dark mode support with appropriate color variants
+  - Comprehensive data-testid attributes for automated testing
+  - User feedback: Consistent "すべて表示" pattern appreciated for both health snapshot and visit reminders
 
 **October 9, 2025**
 - Completed CSV export functionality with field selection and search filtering
