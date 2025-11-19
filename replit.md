@@ -6,6 +6,29 @@ This is a customer relationship management (CRM) system designed specifically fo
 
 ## Recent Changes
 
+**November 19, 2025**
+- Implemented visit reminder feature with next visit date tracking
+  - Added `nextVisitDate` field to kartes schema for tracking upcoming visits
+  - Integrated next visit date input in karte creation/edit forms with calendar picker
+  - Enhanced dashboard API to fetch reminders based on future visit dates only
+  - Backend logic filters out past dates, selects earliest visit per office, sorts globally, and returns top 10
+  - Dashboard displays both next visit date and next action for each reminder
+  - User feedback: Feature working well and highly appreciated
+- Implemented health snapshot detail page functionality
+  - Created dedicated detail page at `/health-snapshot` accessible via "すべて表示" button on home dashboard
+  - Comprehensive statistics display: total offices, healthy, warning, critical, and unknown counts
+  - Status filtering with tabs: all, healthy, warning, critical, unknown
+  - Full office list with engagement type, last visit date, and days since visit
+  - Correct navigation to office detail page (`/office/:officeId/detail`)
+  - SEO metadata (title and meta description) for improved discoverability
+  - Dark mode support with appropriate color variants for all badges and status indicators
+  - Comprehensive data-testid attributes for automated testing
+- Created shared health status badge utility function
+  - Added `getHealthStatusInfo` helper in `client/src/lib/utils.ts`
+  - Returns label and dark-mode-aware className for health status badges
+  - Shared between home.tsx and health-snapshot.tsx to reduce code duplication
+  - Consistent badge styling: green (healthy), yellow (warning), red (critical)
+
 **October 9, 2025**
 - Completed CSV export functionality with field selection and search filtering
 - Implemented worklog (業務日誌) feature with date-based filtering and CRUD operations
