@@ -6,7 +6,9 @@ import {
   insertOfficeSchema, 
   insertPersonSchema, 
   insertKarteSchema, 
-  insertWorklogSchema 
+  insertWorklogSchema,
+  insertSubsidyProgramSchema,
+  insertOfficeSubsidyRecordSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -294,6 +296,276 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting worklog:", error);
       res.status(500).json({ message: "Failed to delete worklog" });
+    }
+  });
+
+  // Dashboard routes
+  app.get('/api/dashboard/visit-reminders', isAuthenticated, async (req, res) => {
+    try {
+      const daysAhead = parseInt(req.query.days as string) || 7;
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + daysAhead);
+      
+      // Get all kartes with nextAction dates in the range
+      const offices = await storage.getAllOffices();
+      
+      // For simplicity, get recent kartes that have nextAction set
+      const kartesPromises = offices.map(o => storage.getKartesByOffice(o.id));
+      const allKartes = await Promise.all(kartesPromises);
+      
+      const reminders: any[] = [];
+      allKartes.forEach((kartes, index) => {
+        if (kartes.length > 0 && kartes[0].nextAction) {
+          reminders.push({
+            officeId: offices[index].id,
+            officeName: offices[index].name,
+            karteId: kartes[0].id,
+            karteTitle: kartes[0].title,
+            visitDate: kartes[0].visitDate,
+            nextAction: kartes[0].nextAction
+          });
+        }
+      });
+      
+      res.json(reminders.slice(0, 10)); // Return top 10
+    } catch (error) {
+      console.error("Error fetching visit reminders:", error);
+      res.status(500).json({ message: "Failed to fetch visit reminders" });
+    }
+  });
+  
+  app.get('/api/dashboard/activity-summary', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const period = req.query.period as string || 'week';
+      
+      const today = new Date();
+      const startDate = new Date();
+      if (period === 'week') {
+        startDate.setDate(today.getDate() - 7);
+      } else {
+        startDate.setMonth(today.getMonth() - 1);
+      }
+      
+      const allWorklogs = await storage.getWorklogsByUser(userId);
+      const worklogs = allWorklogs.filter(w => {
+        const worklogDate = new Date(w.date);
+        return worklogDate >= startDate && worklogDate <= today;
+      });
+      
+      let totalHours = 0;
+      worklogs.forEach(w => {
+        if (w.duration) {
+          const hours = parseFloat(w.duration);
+          if (!isNaN(hours)) totalHours += hours;
+        }
+      });
+      
+      res.json({
+        period,
+        visitCount: worklogs.length,
+        totalHours: totalHours.toFixed(1),
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: today.toISOString().split('T')[0]
+      });
+    } catch (error) {
+      console.error("Error fetching activity summary:", error);
+      res.status(500).json({ message: "Failed to fetch activity summary" });
+    }
+  });
+  
+  app.get('/api/dashboard/health-snapshot', isAuthenticated, async (req, res) => {
+    try {
+      const offices = await storage.getAllOffices();
+      
+      const kartesPromises = offices.map(o => storage.getKartesByOffice(o.id));
+      const allKartes = await Promise.all(kartesPromises);
+      
+      const today = new Date();
+      const healthSnapshot = offices.map((office, index) => {
+        const kartes = allKartes[index];
+        const lastVisit = kartes.length > 0 ? kartes[0].visitDate : null;
+        
+        let daysSinceVisit = null;
+        let status = 'unknown';
+        
+        if (lastVisit) {
+          const lastVisitDate = new Date(lastVisit);
+          daysSinceVisit = Math.floor((today.getTime() - lastVisitDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysSinceVisit < 30) status = 'healthy';
+          else if (daysSinceVisit < 90) status = 'warning';
+          else status = 'critical';
+        }
+        
+        return {
+          officeId: office.id,
+          officeName: office.name,
+          engagementType: office.engagementType,
+          lastVisitDate: lastVisit,
+          daysSinceVisit,
+          status
+        };
+      });
+      
+      res.json(healthSnapshot);
+    } catch (error) {
+      console.error("Error fetching health snapshot:", error);
+      res.status(500).json({ message: "Failed to fetch health snapshot" });
+    }
+  });
+  
+  // Audit log routes
+  app.get('/api/audit-logs/:entityType/:entityId', isAuthenticated, async (req, res) => {
+    try {
+      const { entityType, entityId } = req.params;
+      const logs = await storage.getAuditLogsByEntity(entityType, entityId);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+  
+  // Subsidy program routes
+  app.get('/api/subsidy-programs', isAuthenticated, async (req, res) => {
+    try {
+      const programs = await storage.getAllSubsidyPrograms();
+      res.json(programs);
+    } catch (error) {
+      console.error("Error fetching subsidy programs:", error);
+      res.status(500).json({ message: "Failed to fetch subsidy programs" });
+    }
+  });
+  
+  app.get('/api/subsidy-programs/:id', isAuthenticated, async (req, res) => {
+    try {
+      const program = await storage.getSubsidyProgram(req.params.id);
+      if (!program) {
+        return res.status(404).json({ message: "Subsidy program not found" });
+      }
+      res.json(program);
+    } catch (error) {
+      console.error("Error fetching subsidy program:", error);
+      res.status(500).json({ message: "Failed to fetch subsidy program" });
+    }
+  });
+  
+  app.post('/api/subsidy-programs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const parsed = insertSubsidyProgramSchema.parse(req.body);
+      const program = await storage.createSubsidyProgram({
+        ...parsed,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+      res.status(201).json(program);
+    } catch (error) {
+      console.error("Error creating subsidy program:", error);
+      res.status(400).json({ message: "Failed to create subsidy program" });
+    }
+  });
+  
+  app.patch('/api/subsidy-programs/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const parsed = insertSubsidyProgramSchema.partial().parse(req.body);
+      const program = await storage.updateSubsidyProgram(req.params.id, {
+        ...parsed,
+        updatedBy: userId,
+      });
+      res.json(program);
+    } catch (error) {
+      console.error("Error updating subsidy program:", error);
+      res.status(400).json({ message: "Failed to update subsidy program" });
+    }
+  });
+  
+  app.delete('/api/subsidy-programs/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteSubsidyProgram(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting subsidy program:", error);
+      res.status(500).json({ message: "Failed to delete subsidy program" });
+    }
+  });
+  
+  // Office subsidy record routes
+  app.get('/api/offices/:officeId/subsidy-records', isAuthenticated, async (req, res) => {
+    try {
+      const records = await storage.getOfficeSubsidyRecordsByOffice(req.params.officeId);
+      res.json(records);
+    } catch (error) {
+      console.error("Error fetching office subsidy records:", error);
+      res.status(500).json({ message: "Failed to fetch office subsidy records" });
+    }
+  });
+  
+  app.get('/api/subsidy-records/:id', isAuthenticated, async (req, res) => {
+    try {
+      const record = await storage.getOfficeSubsidyRecord(req.params.id);
+      if (!record) {
+        return res.status(404).json({ message: "Subsidy record not found" });
+      }
+      res.json(record);
+    } catch (error) {
+      console.error("Error fetching subsidy record:", error);
+      res.status(500).json({ message: "Failed to fetch subsidy record" });
+    }
+  });
+  
+  app.get('/api/subsidy-records/upcoming-deadlines', isAuthenticated, async (req, res) => {
+    try {
+      const daysAhead = parseInt(req.query.days as string) || 30;
+      const records = await storage.getUpcomingDeadlines(daysAhead);
+      res.json(records);
+    } catch (error) {
+      console.error("Error fetching upcoming deadlines:", error);
+      res.status(500).json({ message: "Failed to fetch upcoming deadlines" });
+    }
+  });
+  
+  app.post('/api/subsidy-records', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const parsed = insertOfficeSubsidyRecordSchema.parse(req.body);
+      const record = await storage.createOfficeSubsidyRecord({
+        ...parsed,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+      res.status(201).json(record);
+    } catch (error) {
+      console.error("Error creating subsidy record:", error);
+      res.status(400).json({ message: "Failed to create subsidy record" });
+    }
+  });
+  
+  app.patch('/api/subsidy-records/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const parsed = insertOfficeSubsidyRecordSchema.partial().parse(req.body);
+      const record = await storage.updateOfficeSubsidyRecord(req.params.id, {
+        ...parsed,
+        updatedBy: userId,
+      });
+      res.json(record);
+    } catch (error) {
+      console.error("Error updating subsidy record:", error);
+      res.status(400).json({ message: "Failed to update subsidy record" });
+    }
+  });
+  
+  app.delete('/api/subsidy-records/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteOfficeSubsidyRecord(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting subsidy record:", error);
+      res.status(500).json({ message: "Failed to delete subsidy record" });
     }
   });
 

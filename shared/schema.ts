@@ -197,3 +197,72 @@ export const insertWorklogSchema = createInsertSchema(worklogs).omit({
 
 export type InsertWorklog = z.infer<typeof insertWorklogSchema>;
 export type Worklog = typeof worklogs.$inferSelect;
+
+// Audit log table for change history tracking
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityType: varchar("entity_type").notNull(), // 'office', 'person', 'karte', etc.
+  entityId: varchar("entity_id").notNull(),
+  operation: varchar("operation").notNull(), // 'create', 'update', 'delete'
+  fieldChanges: jsonb("field_changes"), // JSON object with before/after values
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+
+// Subsidy programs master table
+export const subsidyPrograms = pgTable("subsidy_programs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  category: varchar("category"), // '補助金', '助成金', '支援制度' etc.
+  provider: varchar("provider"), // 提供機関
+  url: varchar("url"),
+  notes: text("notes"),
+  
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSubsidyProgramSchema = createInsertSchema(subsidyPrograms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSubsidyProgram = z.infer<typeof insertSubsidyProgramSchema>;
+export type SubsidyProgram = typeof subsidyPrograms.$inferSelect;
+
+// Office subsidy records table (tracks subsidy applications per office)
+export const officeSubsidyRecords = pgTable("office_subsidy_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  officeId: varchar("office_id").references(() => offices.id).notNull(),
+  programId: varchar("program_id").references(() => subsidyPrograms.id).notNull(),
+  
+  status: varchar("status").notNull(), // '検討中', '申請準備中', '申請済み', '採択', '不採択', '完了'
+  applicationDate: date("application_date"),
+  deadlineDate: date("deadline_date"),
+  resultDate: date("result_date"),
+  completionDate: date("completion_date"),
+  
+  amount: integer("amount"), // 申請額または交付決定額
+  milestones: text("milestones"), // マイルストーン・進捗メモ
+  notes: text("notes"),
+  
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertOfficeSubsidyRecordSchema = createInsertSchema(officeSubsidyRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertOfficeSubsidyRecord = z.infer<typeof insertOfficeSubsidyRecordSchema>;
+export type OfficeSubsidyRecord = typeof officeSubsidyRecords.$inferSelect;
