@@ -18,6 +18,7 @@ import ExportPage from "@/pages/export";
 import KartePage from "@/pages/karte";
 import WorklogPage from "@/pages/worklog";
 import SubsidyProgramsPage from "@/pages/subsidy-programs";
+import SubsidyProgramDetailPage from "@/pages/subsidy-program-detail";
 import HealthSnapshotPage from "@/pages/health-snapshot";
 import VisitRemindersPage from "@/pages/visit-reminders";
 
@@ -67,6 +68,7 @@ function AuthenticatedApp() {
               <Route path="/karte" component={KartePage} />
               <Route path="/worklog" component={WorklogPage} />
               <Route path="/subsidy-programs" component={SubsidyProgramsPage} />
+              <Route path="/subsidy-program/:id" component={SubsidyProgramDetailPage} />
               <Route component={NotFound} />
             </Switch>
           </main>

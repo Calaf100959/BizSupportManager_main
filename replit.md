@@ -6,6 +6,29 @@ This is a customer relationship management (CRM) system designed specifically fo
 
 ## Recent Changes
 
+**November 19, 2025 (Part 2)**
+- Implemented subsidy program enhancements
+  - Added `status` field to subsidy_programs table (「開始前」「公募中」「事業期間中」「事業終了」)
+  - Replaced single `url` field with `urls` text array supporting up to 5 URLs
+  - Database schema updated via execute_sql_tool to add status and urls columns
+  - Storage interface extended with `getOfficesBySubsidyProgram` and `getOfficeSubsidyRecordsByProgram` methods
+  - API route added: GET /api/subsidy-programs/:id/offices to fetch linked offices
+- Enhanced subsidy programs master page
+  - Added status filtering with toggle badges for each status type
+  - Updated form to support multiple URLs (up to 5) with add/remove functionality
+  - Added status selection dropdown in creation/edit form
+  - Status badge display on program cards
+  - Card click navigation to detail page
+  - Filtered program display based on selected statuses
+- Created subsidy program detail page (/subsidy-program/:id)
+  - Displays full subsidy program information including all URLs
+  - Shows list of linked offices with their subsidy record status
+  - Each linked office shows name, representative, and record status badge
+  - Click-through navigation to office detail pages
+  - SEO metadata with Open Graph tags
+  - Dark mode support with appropriate color variants
+  - Comprehensive data-testid attributes for automated testing
+
 **November 19, 2025**
 - Implemented visit reminder feature with next visit date tracking
   - Added `nextVisitDate` field to kartes schema for tracking upcoming visits

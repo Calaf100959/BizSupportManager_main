@@ -219,7 +219,8 @@ export const subsidyPrograms = pgTable("subsidy_programs", {
   description: text("description"),
   category: varchar("category"), // '補助金', '助成金', '支援制度' etc.
   provider: varchar("provider"), // 提供機関
-  url: varchar("url"),
+  status: varchar("status").notNull().default('開始前'), // '開始前', '公募中', '事業期間中', '事業終了'
+  urls: text("urls").array(), // Up to 5 URLs for subsidy information
   notes: text("notes"),
   
   createdBy: varchar("created_by").references(() => users.id),
@@ -228,11 +229,15 @@ export const subsidyPrograms = pgTable("subsidy_programs", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertSubsidyProgramSchema = createInsertSchema(subsidyPrograms).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertSubsidyProgramSchema = createInsertSchema(subsidyPrograms)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    urls: z.array(z.string().url("有効なURLを入力してください").min(1, "URLは空にできません")).max(5, "URLは最大5つまで登録できます").optional(),
+  });
 
 export type InsertSubsidyProgram = z.infer<typeof insertSubsidyProgramSchema>;
 export type SubsidyProgram = typeof subsidyPrograms.$inferSelect;

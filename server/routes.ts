@@ -478,31 +478,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/subsidy-programs', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const parsed = insertSubsidyProgramSchema.parse(req.body);
+      
+      // Normalize URLs before validation: trim, filter empty, remove duplicates, limit to 5
+      const normalizedBody = {
+        ...req.body,
+        urls: req.body.urls
+          ? Array.from(new Set(
+              req.body.urls
+                .map((url: string) => url.trim())
+                .filter((url: string) => url.length > 0)
+            )).slice(0, 5)
+          : undefined,
+      };
+      
+      // Validate normalized data with schema (strict URL format validation via Zod)
+      const result = insertSubsidyProgramSchema.safeParse(normalizedBody);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: result.error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
+      
       const program = await storage.createSubsidyProgram({
-        ...parsed,
+        ...result.data,
         createdBy: userId,
         updatedBy: userId,
       });
       res.status(201).json(program);
     } catch (error) {
       console.error("Error creating subsidy program:", error);
-      res.status(400).json({ message: "Failed to create subsidy program" });
+      res.status(500).json({ message: "Internal server error" });
     }
   });
   
   app.patch('/api/subsidy-programs/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const parsed = insertSubsidyProgramSchema.partial().parse(req.body);
+      
+      // Normalize URLs before validation if present
+      const normalizedBody = {
+        ...req.body,
+        ...(req.body.urls !== undefined && {
+          urls: req.body.urls && req.body.urls.length > 0
+            ? Array.from(new Set(
+                req.body.urls
+                  .map((url: string) => url.trim())
+                  .filter((url: string) => url.length > 0)
+              )).slice(0, 5)
+            : undefined
+        }),
+      };
+      
+      // Validate normalized data with schema (strict URL format validation via Zod)
+      const result = insertSubsidyProgramSchema.partial().safeParse(normalizedBody);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: result.error.issues.map(issue => ({
+            path: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      }
+      
       const program = await storage.updateSubsidyProgram(req.params.id, {
-        ...parsed,
+        ...result.data,
         updatedBy: userId,
       });
       res.json(program);
     } catch (error) {
       console.error("Error updating subsidy program:", error);
-      res.status(400).json({ message: "Failed to update subsidy program" });
+      res.status(500).json({ message: "Internal server error" });
     }
   });
   
@@ -513,6 +563,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting subsidy program:", error);
       res.status(500).json({ message: "Failed to delete subsidy program" });
+    }
+  });
+  
+  app.get('/api/subsidy-programs/:id/offices', isAuthenticated, async (req, res) => {
+    try {
+      const offices = await storage.getOfficesBySubsidyProgram(req.params.id);
+      // Return dedicated linkage object with nested office summary
+      const linkedOfficeRecords = offices.map(office => ({
+        linkageId: office.recordId,  // Unique identifier for this office-subsidy linkage
+        status: office.recordStatus,  // Status of the subsidy record for this office
+        createdAt: office.createdAt,
+        updatedAt: office.updatedAt,
+        office: {
+          id: office.id,
+          code: office.code,
+          name: office.name,
+          representativeName: office.representativeName,
+          engagementType: office.engagementType,
+        },
+      }));
+      res.json(linkedOfficeRecords);
+    } catch (error) {
+      console.error("Error fetching offices by subsidy program:", error);
+      res.status(500).json({ message: "Failed to fetch offices" });
     }
   });
   

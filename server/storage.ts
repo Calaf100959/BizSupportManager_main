@@ -76,11 +76,13 @@ export interface IStorage {
   getAllSubsidyPrograms(): Promise<SubsidyProgram[]>;
   updateSubsidyProgram(id: string, program: Partial<InsertSubsidyProgram>): Promise<SubsidyProgram>;
   deleteSubsidyProgram(id: string): Promise<void>;
+  getOfficesBySubsidyProgram(programId: string): Promise<Array<Office & { recordStatus: string; recordId: string }>>;
   
   // Office subsidy record operations
   createOfficeSubsidyRecord(record: InsertOfficeSubsidyRecord): Promise<OfficeSubsidyRecord>;
   getOfficeSubsidyRecord(id: string): Promise<OfficeSubsidyRecord | undefined>;
   getOfficeSubsidyRecordsByOffice(officeId: string): Promise<OfficeSubsidyRecord[]>;
+  getOfficeSubsidyRecordsByProgram(programId: string): Promise<OfficeSubsidyRecord[]>;
   getUpcomingDeadlines(daysAhead: number): Promise<OfficeSubsidyRecord[]>;
   updateOfficeSubsidyRecord(id: string, record: Partial<InsertOfficeSubsidyRecord>): Promise<OfficeSubsidyRecord>;
   deleteOfficeSubsidyRecord(id: string): Promise<void>;
@@ -347,6 +349,25 @@ export class DatabaseStorage implements IStorage {
     await db.delete(subsidyPrograms).where(eq(subsidyPrograms.id, id));
   }
   
+  async getOfficesBySubsidyProgram(programId: string): Promise<Array<Office & { recordStatus: string; recordId: string }>> {
+    const result = await db
+      .select({
+        office: offices,
+        recordStatus: officeSubsidyRecords.status,
+        recordId: officeSubsidyRecords.id,
+      })
+      .from(officeSubsidyRecords)
+      .innerJoin(offices, eq(officeSubsidyRecords.officeId, offices.id))
+      .where(eq(officeSubsidyRecords.programId, programId))
+      .orderBy(sql`${offices.name} ASC`);
+    
+    return result.map(row => ({
+      ...row.office,
+      recordStatus: row.recordStatus,
+      recordId: row.recordId,
+    }));
+  }
+  
   // Office subsidy record operations
   async createOfficeSubsidyRecord(recordData: InsertOfficeSubsidyRecord): Promise<OfficeSubsidyRecord> {
     const [record] = await db.insert(officeSubsidyRecords).values(recordData).returning();
@@ -363,6 +384,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(officeSubsidyRecords)
       .where(eq(officeSubsidyRecords.officeId, officeId))
+      .orderBy(sql`${officeSubsidyRecords.deadlineDate} ASC`);
+  }
+  
+  async getOfficeSubsidyRecordsByProgram(programId: string): Promise<OfficeSubsidyRecord[]> {
+    return db
+      .select()
+      .from(officeSubsidyRecords)
+      .where(eq(officeSubsidyRecords.programId, programId))
       .orderBy(sql`${officeSubsidyRecords.deadlineDate} ASC`);
   }
   
