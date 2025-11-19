@@ -277,41 +277,41 @@ export default function SubsidyProgramsPage() {
                     <FormItem>
                       <FormLabel>URL（最大5つ）</FormLabel>
                       <div className="space-y-2">
-                        {[0, 1, 2, 3, 4].map(index => (
-                          <div key={index} className="flex gap-2">
-                            <FormControl>
-                              <Input
-                                type="url"
-                                placeholder={`URL ${index + 1}`}
-                                value={field.value?.[index] || ""}
-                                onChange={(e) => {
-                                  const newUrls = [...(field.value || [])];
-                                  if (e.target.value) {
+                        {[0, 1, 2, 3, 4].map(index => {
+                          const hasValue = Boolean(field.value?.[index]);
+                          return (
+                            <div key={index} className="flex gap-2">
+                              <FormControl>
+                                <Input
+                                  type="url"
+                                  placeholder={`URL ${index + 1}`}
+                                  value={field.value?.[index] || ""}
+                                  onChange={(e) => {
+                                    const currentUrls = field.value || [];
+                                    const newUrls = [...currentUrls];
                                     newUrls[index] = e.target.value;
-                                  } else {
-                                    newUrls.splice(index, 1);
-                                  }
-                                  field.onChange(newUrls.filter(url => url));
-                                }}
-                                data-testid={`input-url-${index}`}
-                              />
-                            </FormControl>
-                            {field.value?.[index] && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={() => {
-                                  const newUrls = field.value?.filter((_, i) => i !== index) || [];
-                                  field.onChange(newUrls);
-                                }}
-                                data-testid={`button-remove-url-${index}`}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
+                                    field.onChange(newUrls);
+                                  }}
+                                  data-testid={`input-url-${index}`}
+                                />
+                              </FormControl>
+                              {hasValue && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    const newUrls = (field.value || []).filter((_, i) => i !== index);
+                                    field.onChange(newUrls);
+                                  }}
+                                  data-testid={`button-remove-url-${index}`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                       <FormMessage />
                     </FormItem>
