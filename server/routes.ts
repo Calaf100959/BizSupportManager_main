@@ -302,30 +302,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard routes
   app.get('/api/dashboard/visit-reminders', isAuthenticated, async (req, res) => {
     try {
-      const daysAhead = parseInt(req.query.days as string) || 7;
-      const today = new Date();
-      const futureDate = new Date();
-      futureDate.setDate(today.getDate() + daysAhead);
-      
-      // Get all kartes with nextAction dates in the range
+      // Get all kartes with nextVisitDate set
       const offices = await storage.getAllOffices();
       
-      // For simplicity, get recent kartes that have nextAction set
+      // Get kartes for each office
       const kartesPromises = offices.map(o => storage.getKartesByOffice(o.id));
       const allKartes = await Promise.all(kartesPromises);
       
       const reminders: any[] = [];
       allKartes.forEach((kartes, index) => {
-        if (kartes.length > 0 && kartes[0].nextAction) {
+        // Find the latest karte with nextVisitDate
+        const karteWithNextVisit = kartes.find(k => k.nextVisitDate);
+        if (karteWithNextVisit) {
           reminders.push({
             officeId: offices[index].id,
             officeName: offices[index].name,
-            karteId: kartes[0].id,
-            karteTitle: kartes[0].title,
-            visitDate: kartes[0].visitDate,
-            nextAction: kartes[0].nextAction
+            karteId: karteWithNextVisit.id,
+            karteTitle: karteWithNextVisit.title,
+            visitDate: karteWithNextVisit.visitDate,
+            nextAction: karteWithNextVisit.nextAction || "",
+            nextVisitDate: karteWithNextVisit.nextVisitDate
           });
         }
+      });
+      
+      // Sort by nextVisitDate ascending (upcoming visits first)
+      reminders.sort((a, b) => {
+        const dateA = new Date(a.nextVisitDate);
+        const dateB = new Date(b.nextVisitDate);
+        return dateA.getTime() - dateB.getTime();
       });
       
       res.json(reminders.slice(0, 10)); // Return top 10
@@ -536,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...parsed,
         createdBy: userId,
         updatedBy: userId,
-      });
+      } as any);
       res.status(201).json(record);
     } catch (error) {
       console.error("Error creating subsidy record:", error);
@@ -551,7 +556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const record = await storage.updateOfficeSubsidyRecord(req.params.id, {
         ...parsed,
         updatedBy: userId,
-      });
+      } as any);
       res.json(record);
     } catch (error) {
       console.error("Error updating subsidy record:", error);

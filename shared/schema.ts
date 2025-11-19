@@ -152,6 +152,7 @@ export const kartes = pgTable("kartes", {
   title: varchar("title").notNull(),
   content: text("content").notNull(),
   nextAction: text("next_action"),
+  nextVisitDate: date("next_visit_date"),
   
   // Guidance classification fields
   guidanceItem: varchar("guidance_item"),

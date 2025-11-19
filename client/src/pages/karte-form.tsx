@@ -34,6 +34,7 @@ export default function KarteFormPage() {
       title: "",
       content: "",
       nextAction: "",
+      nextVisitDate: "",
       guidanceItem: "",
       guidanceCategory: "",
       guidanceContent: "",
@@ -223,6 +224,25 @@ export default function KarteFormPage() {
                         value={field.value || ""}
                         placeholder="次回の支援内容や確認事項"
                         data-testid="textarea-next-action"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="nextVisitDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>次回訪問予定日</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value || ""}
+                        type="date"
+                        data-testid="input-next-visit-date"
                       />
                     </FormControl>
                     <FormMessage />

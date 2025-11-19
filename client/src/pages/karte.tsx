@@ -22,6 +22,7 @@ export default function KartePage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [nextAction, setNextAction] = useState("");
+  const [nextVisitDate, setNextVisitDate] = useState("");
   const [guidanceItem, setGuidanceItem] = useState("");
   const [guidanceCategory, setGuidanceCategory] = useState("");
   const [guidanceContent, setGuidanceContent] = useState("");
@@ -65,6 +66,7 @@ export default function KartePage() {
       setTitle("");
       setContent("");
       setNextAction("");
+      setNextVisitDate("");
       setGuidanceItem("");
       setGuidanceCategory("");
       setGuidanceContent("");
@@ -97,6 +99,7 @@ export default function KartePage() {
       title,
       content,
       nextAction: nextAction || null,
+      nextVisitDate: nextVisitDate || null,
       guidanceItem: guidanceItem || null,
       guidanceCategory: guidanceCategory || null,
       guidanceContent: guidanceContent || null,
@@ -185,6 +188,16 @@ export default function KartePage() {
                     value={nextAction}
                     onChange={(e) => setNextAction(e.target.value)}
                     data-testid="textarea-karte-next"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="karte-next-visit">次回訪問予定日</Label>
+                  <Input 
+                    id="karte-next-visit" 
+                    type="date"
+                    value={nextVisitDate}
+                    onChange={(e) => setNextVisitDate(e.target.value)}
+                    data-testid="input-karte-next-visit"
                   />
                 </div>
 

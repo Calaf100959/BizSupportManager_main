@@ -31,6 +31,7 @@ interface VisitReminder {
   karteTitle: string;
   visitDate: string;
   nextAction: string;
+  nextVisitDate: string;
 }
 
 export default function HomePage() {
@@ -195,8 +196,8 @@ export default function HomePage() {
         {/* Visit Reminders */}
         <Card>
           <CardHeader>
-            <CardTitle>訪問予定アラート</CardTitle>
-            <CardDescription>次回アクションが設定されている事業所</CardDescription>
+            <CardTitle>訪問予定リマインダー</CardTitle>
+            <CardDescription>次回訪問予定日が設定されている事業所（直近10件）</CardDescription>
           </CardHeader>
           <CardContent>
             {remindersLoading ? (
@@ -210,15 +211,27 @@ export default function HomePage() {
               </div>
             ) : visitReminders.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
-                予定はありません
+                訪問予定はありません
               </div>
             ) : (
               <div className="space-y-3">
-                {visitReminders.slice(0, 5).map((reminder) => (
+                {visitReminders.map((reminder) => (
                   <Link key={reminder.karteId} href={`/office/${reminder.officeId}/karte/${reminder.karteId}`}>
                     <div className="border-b pb-3 last:border-0 hover-elevate rounded p-2" data-testid={`visit-reminder-${reminder.officeId}`}>
-                      <p className="text-sm font-medium">{reminder.officeName}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{reminder.nextAction}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium flex-1" data-testid={`reminder-office-${reminder.officeId}`}>
+                          {reminder.officeName}
+                        </p>
+                        <Badge variant="outline" className="text-xs" data-testid={`reminder-date-${reminder.officeId}`}>
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {new Date(reminder.nextVisitDate).toLocaleDateString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric' })}
+                        </Badge>
+                      </div>
+                      {reminder.nextAction && (
+                        <p className="text-xs text-muted-foreground mt-1" data-testid={`reminder-action-${reminder.officeId}`}>
+                          {reminder.nextAction}
+                        </p>
+                      )}
                     </div>
                   </Link>
                 ))}
