@@ -604,7 +604,7 @@ export default function OfficeDetailPage() {
                               {log.createdAt ? new Date(log.createdAt).toLocaleString('ja-JP') : ''}
                             </span>
                           </div>
-                          {log.fieldChanges && typeof log.fieldChanges === 'object' && Object.keys(log.fieldChanges as object).length > 0 && (
+                          {log.fieldChanges && typeof log.fieldChanges === 'object' && Object.keys(log.fieldChanges as object).length > 0 ? (
                             <div className="text-sm space-y-1 mt-2" data-testid={`audit-changes-${log.id}`}>
                               {Object.entries(log.fieldChanges as Record<string, { from: any; to: any }>).map(([field, change]) => (
                                 <div key={field} className="text-muted-foreground break-words">
@@ -617,7 +617,7 @@ export default function OfficeDetailPage() {
                                 </div>
                               ))}
                             </div>
-                          )}
+                          ) : null}
                           {log.userId && (
                             <p className="text-xs text-muted-foreground" data-testid={`audit-user-${log.id}`}>変更者: {log.userId}</p>
                           )}
