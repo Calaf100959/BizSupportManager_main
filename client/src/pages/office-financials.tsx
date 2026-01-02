@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { ArrowLeft, Plus, Calendar, FileText, TrendingUp, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, FileText, TrendingUp, Trash2, Edit, BarChart3 } from "lucide-react";
 import type { FinancialPeriod, Office } from "@shared/schema";
 
 const STATUS_OPTIONS = ['入力中', '確定', '監査済'] as const;
@@ -303,6 +303,23 @@ export default function OfficeFinancialsPage() {
           ))}
         </div>
       )}
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">財務分析ダッシュボード</CardTitle>
+          <CardDescription>
+            複数期間を横断して財務指標・残高の推移を分析できます
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href={`/office/${officeId}/financials/dashboard`}>
+            <Button data-testid="button-dashboard">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              ダッシュボードを開く
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
       
       <Card>
         <CardHeader>
