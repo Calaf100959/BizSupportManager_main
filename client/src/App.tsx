@@ -21,6 +21,11 @@ import SubsidyProgramsPage from "@/pages/subsidy-programs";
 import SubsidyProgramDetailPage from "@/pages/subsidy-program-detail";
 import HealthSnapshotPage from "@/pages/health-snapshot";
 import VisitRemindersPage from "@/pages/visit-reminders";
+import OfficeFinancialsPage from "@/pages/office-financials";
+import FinancialPlPage from "@/pages/financial-pl";
+import FinancialBsPage from "@/pages/financial-bs";
+import FinancialImportPage from "@/pages/financial-import";
+import FinancialAnalysisPage from "@/pages/financial-analysis";
 
 function AuthenticatedApp() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -63,6 +68,11 @@ function AuthenticatedApp() {
               <Route path="/office/:officeId/person/:personId" component={PersonFormPage} />
               <Route path="/office/:officeId/karte/new" component={KarteFormPage} />
               <Route path="/office/:officeId/karte/:karteId" component={KarteFormPage} />
+              <Route path="/office/:officeId/financials" component={OfficeFinancialsPage} />
+              <Route path="/office/:officeId/financials/:periodId/pl" component={FinancialPlPage} />
+              <Route path="/office/:officeId/financials/:periodId/bs" component={FinancialBsPage} />
+              <Route path="/office/:officeId/financials/import" component={FinancialImportPage} />
+              <Route path="/office/:officeId/financials/:periodId/analysis" component={FinancialAnalysisPage} />
               <Route path="/office/:id" component={OfficeFormPage} />
               <Route path="/export" component={ExportPage} />
               <Route path="/karte" component={KartePage} />

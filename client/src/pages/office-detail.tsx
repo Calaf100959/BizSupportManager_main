@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Calendar, History } from "lucide-react";
+import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Calendar, History, TrendingUp } from "lucide-react";
 import { type Office, type Person, type Karte, type OfficeSubsidyRecord, type SubsidyProgram, insertOfficeSubsidyRecordSchema, type InsertOfficeSubsidyRecord, type AuditLog } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -249,6 +249,12 @@ export default function OfficeDetailPage() {
           <p className="text-sm text-muted-foreground">{office.code}</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" asChild data-testid="button-financials">
+            <Link href={`/office/${officeId}/financials`}>
+              <TrendingUp className="h-4 w-4 mr-2" />
+              財務情報
+            </Link>
+          </Button>
           <Button variant="outline" asChild data-testid="button-edit-office">
             <Link href={`/office/${officeId}`}>
               <Edit className="h-4 w-4 mr-2" />

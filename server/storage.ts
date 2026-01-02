@@ -7,6 +7,12 @@ import {
   auditLogs,
   subsidyPrograms,
   officeSubsidyRecords,
+  financialPeriods,
+  financialAccounts,
+  financialBsEntries,
+  financialPlEntries,
+  financialCashflows,
+  financialMetrics,
   type User,
   type UpsertUser,
   type Office,
@@ -22,6 +28,16 @@ import {
   type InsertSubsidyProgram,
   type OfficeSubsidyRecord,
   type InsertOfficeSubsidyRecord,
+  type FinancialPeriod,
+  type InsertFinancialPeriod,
+  type FinancialAccount,
+  type InsertFinancialAccount,
+  type FinancialBsEntry,
+  type InsertFinancialBsEntry,
+  type FinancialPlEntry,
+  type InsertFinancialPlEntry,
+  type FinancialCashflow,
+  type FinancialMetric,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, ilike, sql, and } from "drizzle-orm";
@@ -86,6 +102,38 @@ export interface IStorage {
   getUpcomingDeadlines(daysAhead: number): Promise<OfficeSubsidyRecord[]>;
   updateOfficeSubsidyRecord(id: string, record: Partial<InsertOfficeSubsidyRecord>): Promise<OfficeSubsidyRecord>;
   deleteOfficeSubsidyRecord(id: string): Promise<void>;
+  
+  // Financial period operations
+  createFinancialPeriod(period: InsertFinancialPeriod): Promise<FinancialPeriod>;
+  getFinancialPeriod(id: string): Promise<FinancialPeriod | undefined>;
+  getFinancialPeriodsByOffice(officeId: string): Promise<FinancialPeriod[]>;
+  updateFinancialPeriod(id: string, period: Partial<InsertFinancialPeriod>): Promise<FinancialPeriod>;
+  deleteFinancialPeriod(id: string): Promise<void>;
+  
+  // Financial account operations
+  getAllFinancialAccounts(): Promise<FinancialAccount[]>;
+  getFinancialAccountsByType(statementType: 'BS' | 'PL'): Promise<FinancialAccount[]>;
+  createFinancialAccount(account: InsertFinancialAccount): Promise<FinancialAccount>;
+  
+  // Balance Sheet entry operations
+  createFinancialBsEntry(entry: InsertFinancialBsEntry): Promise<FinancialBsEntry>;
+  getFinancialBsEntriesByPeriod(periodId: string): Promise<FinancialBsEntry[]>;
+  upsertFinancialBsEntries(entries: InsertFinancialBsEntry[]): Promise<FinancialBsEntry[]>;
+  deleteFinancialBsEntriesByPeriod(periodId: string): Promise<void>;
+  
+  // Profit & Loss entry operations
+  createFinancialPlEntry(entry: InsertFinancialPlEntry): Promise<FinancialPlEntry>;
+  getFinancialPlEntriesByPeriod(periodId: string): Promise<FinancialPlEntry[]>;
+  upsertFinancialPlEntries(entries: InsertFinancialPlEntry[]): Promise<FinancialPlEntry[]>;
+  deleteFinancialPlEntriesByPeriod(periodId: string): Promise<void>;
+  
+  // Cash flow operations
+  getFinancialCashflowByPeriod(periodId: string): Promise<FinancialCashflow | undefined>;
+  upsertFinancialCashflow(periodId: string, cashflow: Partial<FinancialCashflow>): Promise<FinancialCashflow>;
+  
+  // Financial metrics operations
+  getFinancialMetricsByPeriod(periodId: string): Promise<FinancialMetric | undefined>;
+  upsertFinancialMetrics(periodId: string, metrics: Partial<FinancialMetric>): Promise<FinancialMetric>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -427,6 +475,203 @@ export class DatabaseStorage implements IStorage {
   
   async deleteOfficeSubsidyRecord(id: string): Promise<void> {
     await db.delete(officeSubsidyRecords).where(eq(officeSubsidyRecords.id, id));
+  }
+  
+  // Financial period operations
+  async createFinancialPeriod(periodData: InsertFinancialPeriod): Promise<FinancialPeriod> {
+    const [period] = await db.insert(financialPeriods).values(periodData).returning();
+    return period;
+  }
+  
+  async getFinancialPeriod(id: string): Promise<FinancialPeriod | undefined> {
+    const [period] = await db.select().from(financialPeriods).where(eq(financialPeriods.id, id));
+    return period;
+  }
+  
+  async getFinancialPeriodsByOffice(officeId: string): Promise<FinancialPeriod[]> {
+    return db
+      .select()
+      .from(financialPeriods)
+      .where(eq(financialPeriods.officeId, officeId))
+      .orderBy(sql`${financialPeriods.endDate} DESC`);
+  }
+  
+  async updateFinancialPeriod(id: string, periodData: Partial<InsertFinancialPeriod>): Promise<FinancialPeriod> {
+    const [period] = await db
+      .update(financialPeriods)
+      .set({ ...periodData, updatedAt: new Date() })
+      .where(eq(financialPeriods.id, id))
+      .returning();
+    return period;
+  }
+  
+  async deleteFinancialPeriod(id: string): Promise<void> {
+    await db.delete(financialBsEntries).where(eq(financialBsEntries.periodId, id));
+    await db.delete(financialPlEntries).where(eq(financialPlEntries.periodId, id));
+    await db.delete(financialCashflows).where(eq(financialCashflows.periodId, id));
+    await db.delete(financialMetrics).where(eq(financialMetrics.periodId, id));
+    await db.delete(financialPeriods).where(eq(financialPeriods.id, id));
+  }
+  
+  // Financial account operations
+  async getAllFinancialAccounts(): Promise<FinancialAccount[]> {
+    return db
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.isActive, 1))
+      .orderBy(sql`${financialAccounts.displayOrder} ASC`);
+  }
+  
+  async getFinancialAccountsByType(statementType: 'BS' | 'PL'): Promise<FinancialAccount[]> {
+    return db
+      .select()
+      .from(financialAccounts)
+      .where(and(
+        eq(financialAccounts.statementType, statementType),
+        eq(financialAccounts.isActive, 1)
+      ))
+      .orderBy(sql`${financialAccounts.displayOrder} ASC`);
+  }
+  
+  async createFinancialAccount(accountData: InsertFinancialAccount): Promise<FinancialAccount> {
+    const [account] = await db.insert(financialAccounts).values(accountData).returning();
+    return account;
+  }
+  
+  // Balance Sheet entry operations
+  async createFinancialBsEntry(entryData: InsertFinancialBsEntry): Promise<FinancialBsEntry> {
+    const [entry] = await db.insert(financialBsEntries).values(entryData).returning();
+    return entry;
+  }
+  
+  async getFinancialBsEntriesByPeriod(periodId: string): Promise<FinancialBsEntry[]> {
+    return db
+      .select()
+      .from(financialBsEntries)
+      .where(eq(financialBsEntries.periodId, periodId));
+  }
+  
+  async upsertFinancialBsEntries(entries: InsertFinancialBsEntry[]): Promise<FinancialBsEntry[]> {
+    if (entries.length === 0) return [];
+    const results: FinancialBsEntry[] = [];
+    for (const entry of entries) {
+      const [existing] = await db
+        .select()
+        .from(financialBsEntries)
+        .where(and(
+          eq(financialBsEntries.periodId, entry.periodId),
+          eq(financialBsEntries.accountId, entry.accountId)
+        ));
+      
+      if (existing) {
+        const [updated] = await db
+          .update(financialBsEntries)
+          .set({ amount: entry.amount, notes: entry.notes, updatedAt: new Date(), updatedBy: entry.updatedBy })
+          .where(eq(financialBsEntries.id, existing.id))
+          .returning();
+        results.push(updated);
+      } else {
+        const [created] = await db.insert(financialBsEntries).values(entry).returning();
+        results.push(created);
+      }
+    }
+    return results;
+  }
+  
+  async deleteFinancialBsEntriesByPeriod(periodId: string): Promise<void> {
+    await db.delete(financialBsEntries).where(eq(financialBsEntries.periodId, periodId));
+  }
+  
+  // Profit & Loss entry operations
+  async createFinancialPlEntry(entryData: InsertFinancialPlEntry): Promise<FinancialPlEntry> {
+    const [entry] = await db.insert(financialPlEntries).values(entryData).returning();
+    return entry;
+  }
+  
+  async getFinancialPlEntriesByPeriod(periodId: string): Promise<FinancialPlEntry[]> {
+    return db
+      .select()
+      .from(financialPlEntries)
+      .where(eq(financialPlEntries.periodId, periodId));
+  }
+  
+  async upsertFinancialPlEntries(entries: InsertFinancialPlEntry[]): Promise<FinancialPlEntry[]> {
+    if (entries.length === 0) return [];
+    const results: FinancialPlEntry[] = [];
+    for (const entry of entries) {
+      const [existing] = await db
+        .select()
+        .from(financialPlEntries)
+        .where(and(
+          eq(financialPlEntries.periodId, entry.periodId),
+          eq(financialPlEntries.accountId, entry.accountId)
+        ));
+      
+      if (existing) {
+        const [updated] = await db
+          .update(financialPlEntries)
+          .set({ amount: entry.amount, notes: entry.notes, updatedAt: new Date(), updatedBy: entry.updatedBy })
+          .where(eq(financialPlEntries.id, existing.id))
+          .returning();
+        results.push(updated);
+      } else {
+        const [created] = await db.insert(financialPlEntries).values(entry).returning();
+        results.push(created);
+      }
+    }
+    return results;
+  }
+  
+  async deleteFinancialPlEntriesByPeriod(periodId: string): Promise<void> {
+    await db.delete(financialPlEntries).where(eq(financialPlEntries.periodId, periodId));
+  }
+  
+  // Cash flow operations
+  async getFinancialCashflowByPeriod(periodId: string): Promise<FinancialCashflow | undefined> {
+    const [cf] = await db.select().from(financialCashflows).where(eq(financialCashflows.periodId, periodId));
+    return cf;
+  }
+  
+  async upsertFinancialCashflow(periodId: string, cashflowData: Partial<FinancialCashflow>): Promise<FinancialCashflow> {
+    const existing = await this.getFinancialCashflowByPeriod(periodId);
+    if (existing) {
+      const [updated] = await db
+        .update(financialCashflows)
+        .set({ ...cashflowData, calculatedAt: new Date(), updatedAt: new Date() })
+        .where(eq(financialCashflows.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(financialCashflows)
+        .values({ ...cashflowData, periodId })
+        .returning();
+      return created;
+    }
+  }
+  
+  // Financial metrics operations
+  async getFinancialMetricsByPeriod(periodId: string): Promise<FinancialMetric | undefined> {
+    const [metrics] = await db.select().from(financialMetrics).where(eq(financialMetrics.periodId, periodId));
+    return metrics;
+  }
+  
+  async upsertFinancialMetrics(periodId: string, metricsData: Partial<FinancialMetric>): Promise<FinancialMetric> {
+    const existing = await this.getFinancialMetricsByPeriod(periodId);
+    if (existing) {
+      const [updated] = await db
+        .update(financialMetrics)
+        .set({ ...metricsData, calculatedAt: new Date(), updatedAt: new Date() })
+        .where(eq(financialMetrics.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(financialMetrics)
+        .values({ ...metricsData, periodId })
+        .returning();
+      return created;
+    }
   }
 }
 

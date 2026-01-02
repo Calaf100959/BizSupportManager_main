@@ -274,3 +274,200 @@ export const insertOfficeSubsidyRecordSchema = createInsertSchema(officeSubsidyR
 
 export type InsertOfficeSubsidyRecord = z.infer<typeof insertOfficeSubsidyRecordSchema>;
 export type OfficeSubsidyRecord = typeof officeSubsidyRecords.$inferSelect;
+
+// ===== Financial Management Tables =====
+
+// Financial periods (事業年度)
+export const financialPeriods = pgTable("financial_periods", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  officeId: varchar("office_id").references(() => offices.id).notNull(),
+  periodName: varchar("period_name").notNull(), // e.g., "第10期", "2024年度"
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  status: varchar("status").notNull().default('入力中'), // '入力中', '確定', '監査済'
+  notes: text("notes"),
+  
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFinancialPeriodSchema = createInsertSchema(financialPeriods).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFinancialPeriod = z.infer<typeof insertFinancialPeriodSchema>;
+export type FinancialPeriod = typeof financialPeriods.$inferSelect;
+
+// Financial accounts master (勘定科目マスタ)
+export const financialAccounts = pgTable("financial_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code").notNull().unique(), // 科目コード e.g., "1101", "4101"
+  name: varchar("name").notNull(), // 科目名 e.g., "現金及び預金", "売上高"
+  nameEn: varchar("name_en"), // English name
+  statementType: varchar("statement_type").notNull(), // 'BS' or 'PL'
+  category: varchar("category").notNull(), // BS: '流動資産', '固定資産', etc. PL: '売上高', '売上原価', etc.
+  subcategory: varchar("subcategory"), // 細分類
+  displayOrder: integer("display_order").notNull().default(0),
+  isDebit: integer("is_debit").notNull().default(1), // 1: 借方科目, 0: 貸方科目
+  isActive: integer("is_active").notNull().default(1),
+  description: text("description"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFinancialAccountSchema = createInsertSchema(financialAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFinancialAccount = z.infer<typeof insertFinancialAccountSchema>;
+export type FinancialAccount = typeof financialAccounts.$inferSelect;
+
+// Balance Sheet entries (貸借対照表エントリ)
+export const financialBsEntries = pgTable("financial_bs_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  periodId: varchar("period_id").references(() => financialPeriods.id).notNull(),
+  accountId: varchar("account_id").references(() => financialAccounts.id).notNull(),
+  amount: integer("amount").notNull().default(0), // 金額（円単位）
+  notes: text("notes"),
+  
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFinancialBsEntrySchema = createInsertSchema(financialBsEntries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFinancialBsEntry = z.infer<typeof insertFinancialBsEntrySchema>;
+export type FinancialBsEntry = typeof financialBsEntries.$inferSelect;
+
+// Profit & Loss entries (損益計算書エントリ)
+export const financialPlEntries = pgTable("financial_pl_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  periodId: varchar("period_id").references(() => financialPeriods.id).notNull(),
+  accountId: varchar("account_id").references(() => financialAccounts.id).notNull(),
+  amount: integer("amount").notNull().default(0), // 金額（円単位）
+  notes: text("notes"),
+  
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFinancialPlEntrySchema = createInsertSchema(financialPlEntries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFinancialPlEntry = z.infer<typeof insertFinancialPlEntrySchema>;
+export type FinancialPlEntry = typeof financialPlEntries.$inferSelect;
+
+// Cash Flow Statement (キャッシュフロー計算書 - 計算結果保存用)
+export const financialCashflows = pgTable("financial_cashflows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  periodId: varchar("period_id").references(() => financialPeriods.id).notNull(),
+  
+  // Operating Activities (営業活動)
+  netIncome: integer("net_income").default(0),
+  depreciation: integer("depreciation").default(0),
+  amortization: integer("amortization").default(0),
+  provisionChange: integer("provision_change").default(0),
+  receivablesChange: integer("receivables_change").default(0),
+  inventoryChange: integer("inventory_change").default(0),
+  payablesChange: integer("payables_change").default(0),
+  otherOperatingChange: integer("other_operating_change").default(0),
+  operatingCashFlow: integer("operating_cash_flow").default(0),
+  
+  // Investing Activities (投資活動)
+  fixedAssetPurchase: integer("fixed_asset_purchase").default(0),
+  fixedAssetSale: integer("fixed_asset_sale").default(0),
+  investmentPurchase: integer("investment_purchase").default(0),
+  investmentSale: integer("investment_sale").default(0),
+  loanChange: integer("loan_change").default(0),
+  investingCashFlow: integer("investing_cash_flow").default(0),
+  
+  // Financing Activities (財務活動)
+  shortTermBorrowingChange: integer("short_term_borrowing_change").default(0),
+  longTermBorrowingIncrease: integer("long_term_borrowing_increase").default(0),
+  longTermBorrowingDecrease: integer("long_term_borrowing_decrease").default(0),
+  stockIssuance: integer("stock_issuance").default(0),
+  dividendPaid: integer("dividend_paid").default(0),
+  financingCashFlow: integer("financing_cash_flow").default(0),
+  
+  // Total
+  netCashChange: integer("net_cash_change").default(0),
+  beginningCash: integer("beginning_cash").default(0),
+  endingCash: integer("ending_cash").default(0),
+  
+  calculatedAt: timestamp("calculated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type FinancialCashflow = typeof financialCashflows.$inferSelect;
+
+// Financial Metrics (財務指標 - KPI計算結果)
+export const financialMetrics = pgTable("financial_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  periodId: varchar("period_id").references(() => financialPeriods.id).notNull(),
+  
+  // Absolute Values (絶対額)
+  revenue: integer("revenue"), // 売上高
+  grossProfit: integer("gross_profit"), // 売上総利益
+  operatingProfit: integer("operating_profit"), // 営業利益
+  ordinaryProfit: integer("ordinary_profit"), // 経常利益
+  netIncome: integer("net_income"), // 当期純利益
+  totalAssets: integer("total_assets"), // 総資産
+  netAssets: integer("net_assets"), // 純資産
+  totalLiabilities: integer("total_liabilities"), // 総負債
+  currentAssets: integer("current_assets"), // 流動資産
+  currentLiabilities: integer("current_liabilities"), // 流動負債
+  
+  // Profitability (収益性)
+  grossProfitMargin: integer("gross_profit_margin"), // 売上高総利益率 (小数点2桁 * 100)
+  operatingProfitMargin: integer("operating_profit_margin"), // 売上高営業利益率
+  ordinaryProfitMargin: integer("ordinary_profit_margin"), // 売上高経常利益率
+  netProfitMargin: integer("net_profit_margin"), // 売上高当期純利益率
+  roa: integer("roa"), // 総資本利益率
+  roe: integer("roe"), // 自己資本利益率
+  
+  // Safety (安全性)
+  currentRatio: integer("current_ratio"), // 流動比率
+  quickRatio: integer("quick_ratio"), // 当座比率
+  equityRatio: integer("equity_ratio"), // 自己資本比率
+  debtRatio: integer("debt_ratio"), // 負債比率
+  debtToEquityRatio: integer("debt_to_equity_ratio"), // D/E比率
+  fixedRatio: integer("fixed_ratio"), // 固定比率
+  fixedLongTermRatio: integer("fixed_long_term_ratio"), // 固定長期適合率
+  
+  // Growth (成長性)
+  salesGrowthRate: integer("sales_growth_rate"), // 売上高成長率
+  operatingProfitGrowthRate: integer("operating_profit_growth_rate"), // 営業利益成長率
+  totalAssetGrowthRate: integer("total_asset_growth_rate"), // 総資産成長率
+  
+  // Efficiency (効率性)
+  totalAssetTurnover: integer("total_asset_turnover"), // 総資本回転率 (小数点2桁 * 100)
+  assetTurnover: integer("asset_turnover"), // 総資産回転率
+  receivablesTurnover: integer("receivables_turnover"), // 売上債権回転率
+  inventoryTurnover: integer("inventory_turnover"), // 棚卸資産回転率
+  payablesTurnover: integer("payables_turnover"), // 仕入債務回転率
+  
+  calculatedAt: timestamp("calculated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type FinancialMetric = typeof financialMetrics.$inferSelect;

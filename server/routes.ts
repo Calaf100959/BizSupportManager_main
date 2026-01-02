@@ -745,6 +745,401 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== Financial Management API Routes =====
+  
+  // Financial periods
+  app.get('/api/offices/:officeId/financial-periods', isAuthenticated, async (req, res) => {
+    try {
+      const periods = await storage.getFinancialPeriodsByOffice(req.params.officeId);
+      res.json(periods);
+    } catch (error) {
+      console.error("Error fetching financial periods:", error);
+      res.status(500).json({ message: "Failed to fetch financial periods" });
+    }
+  });
+  
+  app.get('/api/financial-periods/:id', isAuthenticated, async (req, res) => {
+    try {
+      const period = await storage.getFinancialPeriod(req.params.id);
+      if (!period) {
+        return res.status(404).json({ message: "Financial period not found" });
+      }
+      res.json(period);
+    } catch (error) {
+      console.error("Error fetching financial period:", error);
+      res.status(500).json({ message: "Failed to fetch financial period" });
+    }
+  });
+  
+  app.post('/api/offices/:officeId/financial-periods', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const period = await storage.createFinancialPeriod({
+        ...req.body,
+        officeId: req.params.officeId,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+      res.status(201).json(period);
+    } catch (error) {
+      console.error("Error creating financial period:", error);
+      res.status(400).json({ message: "Failed to create financial period" });
+    }
+  });
+  
+  app.patch('/api/financial-periods/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const period = await storage.updateFinancialPeriod(req.params.id, {
+        ...req.body,
+        updatedBy: userId,
+      });
+      res.json(period);
+    } catch (error) {
+      console.error("Error updating financial period:", error);
+      res.status(400).json({ message: "Failed to update financial period" });
+    }
+  });
+  
+  app.delete('/api/financial-periods/:id', isAuthenticated, async (req, res) => {
+    try {
+      await storage.deleteFinancialPeriod(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting financial period:", error);
+      res.status(500).json({ message: "Failed to delete financial period" });
+    }
+  });
+  
+  // Financial accounts (master data)
+  app.get('/api/financial-accounts', isAuthenticated, async (req, res) => {
+    try {
+      const { type } = req.query;
+      if (type === 'BS' || type === 'PL') {
+        const accounts = await storage.getFinancialAccountsByType(type);
+        res.json(accounts);
+      } else {
+        const accounts = await storage.getAllFinancialAccounts();
+        res.json(accounts);
+      }
+    } catch (error) {
+      console.error("Error fetching financial accounts:", error);
+      res.status(500).json({ message: "Failed to fetch financial accounts" });
+    }
+  });
+  
+  // Balance Sheet entries
+  app.get('/api/financial-periods/:periodId/bs', isAuthenticated, async (req, res) => {
+    try {
+      const entries = await storage.getFinancialBsEntriesByPeriod(req.params.periodId);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching BS entries:", error);
+      res.status(500).json({ message: "Failed to fetch BS entries" });
+    }
+  });
+  
+  app.put('/api/financial-periods/:periodId/bs', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const entries = req.body.entries.map((entry: any) => ({
+        ...entry,
+        periodId: req.params.periodId,
+        createdBy: userId,
+        updatedBy: userId,
+      }));
+      const result = await storage.upsertFinancialBsEntries(entries);
+      res.json(result);
+    } catch (error) {
+      console.error("Error upserting BS entries:", error);
+      res.status(400).json({ message: "Failed to save BS entries" });
+    }
+  });
+  
+  // Profit & Loss entries
+  app.get('/api/financial-periods/:periodId/pl', isAuthenticated, async (req, res) => {
+    try {
+      const entries = await storage.getFinancialPlEntriesByPeriod(req.params.periodId);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching PL entries:", error);
+      res.status(500).json({ message: "Failed to fetch PL entries" });
+    }
+  });
+  
+  app.put('/api/financial-periods/:periodId/pl', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const entries = req.body.entries.map((entry: any) => ({
+        ...entry,
+        periodId: req.params.periodId,
+        createdBy: userId,
+        updatedBy: userId,
+      }));
+      const result = await storage.upsertFinancialPlEntries(entries);
+      res.json(result);
+    } catch (error) {
+      console.error("Error upserting PL entries:", error);
+      res.status(400).json({ message: "Failed to save PL entries" });
+    }
+  });
+  
+  // Cash Flow Statement
+  app.get('/api/financial-periods/:periodId/cashflow', isAuthenticated, async (req, res) => {
+    try {
+      const cashflow = await storage.getFinancialCashflowByPeriod(req.params.periodId);
+      res.json(cashflow || null);
+    } catch (error) {
+      console.error("Error fetching cashflow:", error);
+      res.status(500).json({ message: "Failed to fetch cashflow" });
+    }
+  });
+  
+  // Financial Metrics
+  app.get('/api/financial-periods/:periodId/metrics', isAuthenticated, async (req, res) => {
+    try {
+      const metrics = await storage.getFinancialMetricsByPeriod(req.params.periodId);
+      res.json(metrics || null);
+    } catch (error) {
+      console.error("Error fetching metrics:", error);
+      res.status(500).json({ message: "Failed to fetch metrics" });
+    }
+  });
+  
+  // CSV Import for financial data
+  app.post('/api/offices/:officeId/financials/import-csv', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { periodId, statementType, data } = req.body;
+      
+      if (!periodId || !statementType || !Array.isArray(data)) {
+        return res.status(400).json({ message: "Invalid import data" });
+      }
+      
+      const accounts = await storage.getAllFinancialAccounts();
+      const accountByCode = new Map(accounts.map(a => [a.code, a]));
+      
+      const entries = data
+        .filter((row: any) => row.accountCode && row.amount !== undefined)
+        .map((row: any) => {
+          const account = accountByCode.get(row.accountCode);
+          if (!account) return null;
+          return {
+            periodId,
+            accountId: account.id,
+            amount: parseInt(row.amount, 10) || 0,
+            notes: row.notes || '',
+            createdBy: userId,
+            updatedBy: userId,
+          };
+        })
+        .filter(Boolean);
+      
+      if (entries.length === 0) {
+        return res.status(400).json({ message: "No valid entries found in CSV" });
+      }
+      
+      let result;
+      if (statementType === 'PL') {
+        result = await storage.upsertFinancialPlEntries(entries);
+      } else if (statementType === 'BS') {
+        result = await storage.upsertFinancialBsEntries(entries);
+      } else {
+        return res.status(400).json({ message: "Invalid statement type" });
+      }
+      
+      res.json({ imported: result.length, total: data.length });
+    } catch (error) {
+      console.error("Error importing CSV:", error);
+      res.status(500).json({ message: "Failed to import CSV data" });
+    }
+  });
+  
+  // Calculate and store cash flow (indirect method)
+  app.post('/api/financial-periods/:periodId/calculate-cashflow', isAuthenticated, async (req, res) => {
+    try {
+      const periodId = req.params.periodId;
+      const period = await storage.getFinancialPeriod(periodId);
+      if (!period) {
+        return res.status(404).json({ message: "Period not found" });
+      }
+      
+      const plEntries = await storage.getFinancialPlEntriesByPeriod(periodId);
+      const bsEntries = await storage.getFinancialBsEntriesByPeriod(periodId);
+      const accounts = await storage.getAllFinancialAccounts();
+      
+      const accountById = new Map(accounts.map(a => [a.id, a]));
+      
+      const getAmountByCode = (entries: typeof plEntries | typeof bsEntries, code: string) => {
+        for (const entry of entries) {
+          const account = accountById.get(entry.accountId);
+          if (account?.code === code) return entry.amount;
+        }
+        return 0;
+      };
+      
+      const getAmountsByCategory = (entries: typeof plEntries | typeof bsEntries, category: string) => {
+        let total = 0;
+        for (const entry of entries) {
+          const account = accountById.get(entry.accountId);
+          if (account?.category === category) {
+            total += entry.amount;
+          }
+        }
+        return total;
+      };
+      
+      const netIncome = getAmountsByCategory(plEntries, '売上高') - 
+                        getAmountsByCategory(plEntries, '売上原価') - 
+                        getAmountsByCategory(plEntries, '販売費及び一般管理費') +
+                        getAmountsByCategory(plEntries, '営業外収益') - 
+                        getAmountsByCategory(plEntries, '営業外費用') +
+                        getAmountsByCategory(plEntries, '特別利益') - 
+                        getAmountsByCategory(plEntries, '特別損失') - 
+                        getAmountsByCategory(plEntries, '法人税等');
+      
+      const depreciation = getAmountByCode(plEntries, '4309');
+      
+      const operatingCashflow = netIncome + depreciation;
+      const investingCashflow = 0;
+      const financingCashflow = 0;
+      const netCashflow = operatingCashflow + investingCashflow + financingCashflow;
+      const beginningCash = getAmountByCode(bsEntries, '1101');
+      const endingCash = beginningCash + netCashflow;
+      
+      const cashflow = await storage.upsertFinancialCashflow(periodId, {
+        operatingCashFlow: operatingCashflow,
+        investingCashFlow: investingCashflow,
+        financingCashFlow: financingCashflow,
+        netCashChange: netCashflow,
+        beginningCash,
+        endingCash,
+        depreciation,
+        netIncome,
+      });
+      
+      res.json(cashflow);
+    } catch (error) {
+      console.error("Error calculating cashflow:", error);
+      res.status(500).json({ message: "Failed to calculate cashflow" });
+    }
+  });
+  
+  // Get financial metrics for a period
+  app.get('/api/financial-periods/:periodId/metrics', isAuthenticated, async (req, res) => {
+    try {
+      const periodId = req.params.periodId;
+      const metrics = await storage.getFinancialMetricsByPeriod(periodId);
+      res.json(metrics || null);
+    } catch (error) {
+      console.error("Error fetching metrics:", error);
+      res.status(500).json({ message: "Failed to fetch metrics" });
+    }
+  });
+  
+  // Get financial cashflow for a period
+  app.get('/api/financial-periods/:periodId/cashflow', isAuthenticated, async (req, res) => {
+    try {
+      const periodId = req.params.periodId;
+      const cashflow = await storage.getFinancialCashflowByPeriod(periodId);
+      res.json(cashflow || null);
+    } catch (error) {
+      console.error("Error fetching cashflow:", error);
+      res.status(500).json({ message: "Failed to fetch cashflow" });
+    }
+  });
+  
+  // Calculate and store financial metrics
+  app.post('/api/financial-periods/:periodId/calculate-metrics', isAuthenticated, async (req, res) => {
+    try {
+      const periodId = req.params.periodId;
+      
+      const plEntries = await storage.getFinancialPlEntriesByPeriod(periodId);
+      const bsEntries = await storage.getFinancialBsEntriesByPeriod(periodId);
+      const accounts = await storage.getAllFinancialAccounts();
+      
+      const accountById = new Map(accounts.map(a => [a.id, a]));
+      
+      const getAmountsByCategory = (entries: typeof plEntries | typeof bsEntries, category: string) => {
+        let total = 0;
+        for (const entry of entries) {
+          const account = accountById.get(entry.accountId);
+          if (account?.category === category) {
+            total += entry.amount;
+          }
+        }
+        return total;
+      };
+      
+      const getTotalByCategories = (entries: typeof bsEntries, categories: string[], isDebit: boolean) => {
+        let total = 0;
+        for (const entry of entries) {
+          const account = accountById.get(entry.accountId);
+          if (account && categories.includes(account.category)) {
+            total += (account.isDebit === 1) === isDebit ? entry.amount : -entry.amount;
+          }
+        }
+        return total;
+      };
+      
+      const sales = getAmountsByCategory(plEntries, '売上高');
+      const cogs = getAmountsByCategory(plEntries, '売上原価');
+      const sga = getAmountsByCategory(plEntries, '販売費及び一般管理費');
+      const grossProfit = sales - cogs;
+      const operatingProfit = grossProfit - sga;
+      const ordinaryProfit = operatingProfit + 
+                            getAmountsByCategory(plEntries, '営業外収益') - 
+                            getAmountsByCategory(plEntries, '営業外費用');
+      const netIncome = ordinaryProfit + 
+                        getAmountsByCategory(plEntries, '特別利益') - 
+                        getAmountsByCategory(plEntries, '特別損失') - 
+                        getAmountsByCategory(plEntries, '法人税等');
+      
+      const totalAssets = getTotalByCategories(bsEntries, ['流動資産', '固定資産'], true);
+      const currentAssets = getTotalByCategories(bsEntries, ['流動資産'], true);
+      const currentLiabilities = getTotalByCategories(bsEntries, ['流動負債'], false);
+      const totalLiabilities = getTotalByCategories(bsEntries, ['流動負債', '固定負債'], false);
+      const netAssets = getTotalByCategories(bsEntries, ['純資産'], false);
+      
+      const grossProfitMargin = sales > 0 ? Math.round((grossProfit / sales) * 10000) : 0;
+      const operatingProfitMargin = sales > 0 ? Math.round((operatingProfit / sales) * 10000) : 0;
+      const netProfitMargin = sales > 0 ? Math.round((netIncome / sales) * 10000) : 0;
+      const currentRatio = currentLiabilities > 0 ? Math.round((currentAssets / currentLiabilities) * 10000) : 0;
+      const debtToEquityRatio = netAssets > 0 ? Math.round((totalLiabilities / netAssets) * 10000) : 0;
+      const equityRatio = totalAssets > 0 ? Math.round((netAssets / totalAssets) * 10000) : 0;
+      const roa = totalAssets > 0 ? Math.round((netIncome / totalAssets) * 10000) : 0;
+      const roe = netAssets > 0 ? Math.round((netIncome / netAssets) * 10000) : 0;
+      const assetTurnover = totalAssets > 0 ? Math.round((sales / totalAssets) * 10000) : 0;
+      
+      const metrics = await storage.upsertFinancialMetrics(periodId, {
+        revenue: sales,
+        grossProfit,
+        operatingProfit,
+        ordinaryProfit,
+        netIncome,
+        totalAssets,
+        netAssets,
+        totalLiabilities,
+        currentAssets,
+        currentLiabilities,
+        grossProfitMargin,
+        operatingProfitMargin,
+        netProfitMargin,
+        currentRatio,
+        debtToEquityRatio,
+        equityRatio,
+        roa,
+        roe,
+        assetTurnover,
+      });
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error calculating metrics:", error);
+      res.status(500).json({ message: "Failed to calculate metrics" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
