@@ -69,15 +69,28 @@ export default function FinancialImportPage() {
     const accountsByCode = new Map(accounts.map(a => [a.code, a]));
     const rows: ParsedRow[] = [];
     
+    const headerLine = lines[0].toLowerCase();
+    const hasNameColumn = headerLine.includes('勘定科目名') || headerLine.includes('カテゴリ');
+    
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       const cells = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
       
       if (cells.length < 2) continue;
       
-      const accountCode = cells[0];
-      const amount = parseInt(cells[1].replace(/[^0-9-]/g, ''), 10) || 0;
-      const notes = cells[2] || '';
+      let accountCode: string;
+      let amount: number;
+      let notes: string;
+      
+      if (hasNameColumn && cells.length >= 4) {
+        accountCode = cells[0];
+        amount = parseInt(cells[3].replace(/[^0-9-]/g, ''), 10) || 0;
+        notes = cells[4] || '';
+      } else {
+        accountCode = cells[0];
+        amount = parseInt(cells[1].replace(/[^0-9-]/g, ''), 10) || 0;
+        notes = cells[2] || '';
+      }
       
       const account = accountsByCode.get(accountCode);
       
@@ -140,8 +153,8 @@ export default function FinancialImportPage() {
   
   const downloadTemplate = () => {
     const filteredAccounts = accounts.filter(a => a.statementType === statementType);
-    const header = '勘定科目コード,金額,備考';
-    const rows = filteredAccounts.map(a => `${a.code},0,`);
+    const header = '勘定科目コード,勘定科目名,カテゴリ,金額,備考';
+    const rows = filteredAccounts.map(a => `${a.code},"${a.name}","${a.category}",0,`);
     const csv = [header, ...rows].join('\n');
     
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
