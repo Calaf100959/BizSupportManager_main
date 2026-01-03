@@ -828,9 +828,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Balance Sheet entries
+  // Balance Sheet entries (with Cache-Control for real-time sync)
   app.get('/api/financial-periods/:periodId/bs', isAuthenticated, async (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       const entries = await storage.getFinancialBsEntriesByPeriod(req.params.periodId);
       res.json(entries);
     } catch (error) {
@@ -856,9 +857,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Profit & Loss entries
+  // Profit & Loss entries (with Cache-Control for real-time sync)
   app.get('/api/financial-periods/:periodId/pl', isAuthenticated, async (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       const entries = await storage.getFinancialPlEntriesByPeriod(req.params.periodId);
       res.json(entries);
     } catch (error) {

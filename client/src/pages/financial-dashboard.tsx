@@ -72,7 +72,7 @@ export default function FinancialDashboardPage() {
       const results: Record<string, any[]> = {};
       for (const id of periodIds) {
         try {
-          const res = await fetch(`/api/financial-periods/${id}/pl-entries`, { credentials: 'include' });
+          const res = await fetch(`/api/financial-periods/${id}/pl`, { credentials: 'include' });
           results[id] = res.ok ? await res.json() : [];
         } catch { results[id] = []; }
       }
@@ -87,7 +87,7 @@ export default function FinancialDashboardPage() {
       const results: Record<string, any[]> = {};
       for (const id of periodIds) {
         try {
-          const res = await fetch(`/api/financial-periods/${id}/bs-entries`, { credentials: 'include' });
+          const res = await fetch(`/api/financial-periods/${id}/bs`, { credentials: 'include' });
           results[id] = res.ok ? await res.json() : [];
         } catch { results[id] = []; }
       }
