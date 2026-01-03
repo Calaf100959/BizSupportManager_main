@@ -884,27 +884,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Cash Flow Statement
-  app.get('/api/financial-periods/:periodId/cashflow', isAuthenticated, async (req, res) => {
-    try {
-      const cashflow = await storage.getFinancialCashflowByPeriod(req.params.periodId);
-      res.json(cashflow || null);
-    } catch (error) {
-      console.error("Error fetching cashflow:", error);
-      res.status(500).json({ message: "Failed to fetch cashflow" });
-    }
-  });
-  
-  // Financial Metrics
-  app.get('/api/financial-periods/:periodId/metrics', isAuthenticated, async (req, res) => {
-    try {
-      const metrics = await storage.getFinancialMetricsByPeriod(req.params.periodId);
-      res.json(metrics || null);
-    } catch (error) {
-      console.error("Error fetching metrics:", error);
-      res.status(500).json({ message: "Failed to fetch metrics" });
-    }
-  });
   
   // CSV Import for financial data
   app.post('/api/offices/:officeId/financials/import-csv', isAuthenticated, async (req: any, res) => {
@@ -1081,14 +1060,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
   
-  // Get financial metrics for a period (auto-calculate if missing)
+  // Get financial metrics for a period (always recalculate from PL/BS data for real-time sync)
   app.get('/api/financial-periods/:periodId/metrics', isAuthenticated, async (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       const periodId = req.params.periodId;
-      let metrics = await storage.getFinancialMetricsByPeriod(periodId);
-      if (!metrics) {
-        metrics = await calculateMetricsForPeriod(periodId) || undefined;
-      }
+      const metrics = await calculateMetricsForPeriod(periodId);
       res.json(metrics || null);
     } catch (error) {
       console.error("Error fetching metrics:", error);
@@ -1096,59 +1073,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get financial cashflow for a period (auto-calculate if missing)
+  // Helper function to calculate cashflow for a period (always recalculate from PL/BS data)
+  async function calculateCashflowForPeriod(periodId: string) {
+    const plEntries = await storage.getFinancialPlEntriesByPeriod(periodId);
+    const bsEntries = await storage.getFinancialBsEntriesByPeriod(periodId);
+    const accounts = await storage.getAllFinancialAccounts();
+    
+    if (plEntries.length === 0 && bsEntries.length === 0) return null;
+    
+    const accountById = new Map(accounts.map(a => [a.id, a]));
+    
+    const getAmountByCode = (entries: typeof bsEntries, code: string) => {
+      for (const entry of entries) {
+        const account = accountById.get(entry.accountId);
+        if (account?.code === code) return entry.amount;
+      }
+      return 0;
+    };
+    
+    const getAmountsByCategory = (entries: typeof plEntries, category: string) => {
+      let total = 0;
+      for (const entry of entries) {
+        const account = accountById.get(entry.accountId);
+        if (account?.category === category) total += entry.amount;
+      }
+      return total;
+    };
+    
+    const sales = getAmountsByCategory(plEntries, '売上高');
+    const cogs = getAmountsByCategory(plEntries, '売上原価');
+    const sga = getAmountsByCategory(plEntries, '販売費及び一般管理費');
+    const grossProfit = sales - cogs;
+    const operatingProfit = grossProfit - sga;
+    const ordinaryProfit = operatingProfit + getAmountsByCategory(plEntries, '営業外収益') - getAmountsByCategory(plEntries, '営業外費用');
+    const extraordinaryProfit = getAmountsByCategory(plEntries, '特別利益') - getAmountsByCategory(plEntries, '特別損失');
+    const taxes = getAmountsByCategory(plEntries, '法人税等');
+    const netIncome = ordinaryProfit + extraordinaryProfit - taxes;
+    
+    const depreciation = (() => {
+      for (const entry of plEntries) {
+        const account = accountById.get(entry.accountId);
+        if (account?.code === '4309') return entry.amount;
+      }
+      return 0;
+    })();
+    
+    const operatingCF = netIncome + depreciation;
+    const beginningCash = getAmountByCode(bsEntries, '1101');
+    
+    return storage.upsertFinancialCashflow(periodId, {
+      operatingCashFlow: operatingCF,
+      investingCashFlow: 0,
+      financingCashFlow: 0,
+      netCashChange: operatingCF,
+      beginningCash,
+      endingCash: beginningCash + operatingCF,
+      depreciation,
+      netIncome,
+    });
+  }
+  
+  // Get financial cashflow for a period (always recalculate from PL/BS data for real-time sync)
   app.get('/api/financial-periods/:periodId/cashflow', isAuthenticated, async (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       const periodId = req.params.periodId;
-      let cashflow = await storage.getFinancialCashflowByPeriod(periodId);
-      if (!cashflow) {
-        const plEntries = await storage.getFinancialPlEntriesByPeriod(periodId);
-        const bsEntries = await storage.getFinancialBsEntriesByPeriod(periodId);
-        const accounts = await storage.getAllFinancialAccounts();
-        
-        if (plEntries.length > 0 || bsEntries.length > 0) {
-          const accountById = new Map(accounts.map(a => [a.id, a]));
-          const getAmountByCode = (entries: typeof bsEntries, code: string) => {
-            for (const entry of entries) {
-              const account = accountById.get(entry.accountId);
-              if (account?.code === code) return entry.amount;
-            }
-            return 0;
-          };
-          const getAmountsByCategory = (entries: typeof plEntries, category: string) => {
-            let total = 0;
-            for (const entry of entries) {
-              const account = accountById.get(entry.accountId);
-              if (account?.category === category) total += entry.amount;
-            }
-            return total;
-          };
-          
-          const sales = getAmountsByCategory(plEntries, '売上高');
-          const cogs = getAmountsByCategory(plEntries, '売上原価');
-          const sga = getAmountsByCategory(plEntries, '販売費及び一般管理費');
-          const grossProfit = sales - cogs;
-          const operatingProfit = grossProfit - sga;
-          const ordinaryProfit = operatingProfit + getAmountsByCategory(plEntries, '営業外収益') - getAmountsByCategory(plEntries, '営業外費用');
-          const extraordinaryProfit = getAmountsByCategory(plEntries, '特別利益') - getAmountsByCategory(plEntries, '特別損失');
-          const taxes = getAmountsByCategory(plEntries, '法人税等');
-          const netIncome = ordinaryProfit + extraordinaryProfit - taxes;
-          const depreciation = getAmountsByCategory(plEntries, '販売費及び一般管理費');
-          const operatingCF = netIncome + depreciation;
-          const beginningCash = getAmountByCode(bsEntries, '1101');
-          
-          cashflow = await storage.upsertFinancialCashflow(periodId, {
-            operatingCashFlow: operatingCF,
-            investingCashFlow: 0,
-            financingCashFlow: 0,
-            netCashChange: operatingCF,
-            beginningCash,
-            endingCash: beginningCash + operatingCF,
-            depreciation,
-            netIncome,
-          });
-        }
-      }
+      const cashflow = await calculateCashflowForPeriod(periodId);
       res.json(cashflow || null);
     } catch (error) {
       console.error("Error fetching cashflow:", error);
