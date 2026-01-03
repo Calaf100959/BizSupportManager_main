@@ -544,11 +544,38 @@ export class DatabaseStorage implements IStorage {
     return entry;
   }
   
-  async getFinancialBsEntriesByPeriod(periodId: string): Promise<FinancialBsEntry[]> {
-    return db
-      .select()
+  async getFinancialBsEntriesByPeriod(periodId: string): Promise<(FinancialBsEntry & { account: FinancialAccount | null })[]> {
+    const results = await db
+      .select({
+        id: financialBsEntries.id,
+        periodId: financialBsEntries.periodId,
+        accountId: financialBsEntries.accountId,
+        amount: financialBsEntries.amount,
+        notes: financialBsEntries.notes,
+        createdAt: financialBsEntries.createdAt,
+        updatedAt: financialBsEntries.updatedAt,
+        createdBy: financialBsEntries.createdBy,
+        updatedBy: financialBsEntries.updatedBy,
+        account: {
+          id: financialAccounts.id,
+          code: financialAccounts.code,
+          name: financialAccounts.name,
+          nameEn: financialAccounts.nameEn,
+          statementType: financialAccounts.statementType,
+          category: financialAccounts.category,
+          subcategory: financialAccounts.subcategory,
+          displayOrder: financialAccounts.displayOrder,
+          isDebit: financialAccounts.isDebit,
+          isActive: financialAccounts.isActive,
+          description: financialAccounts.description,
+          createdAt: financialAccounts.createdAt,
+          updatedAt: financialAccounts.updatedAt,
+        },
+      })
       .from(financialBsEntries)
+      .leftJoin(financialAccounts, eq(financialBsEntries.accountId, financialAccounts.id))
       .where(eq(financialBsEntries.periodId, periodId));
+    return results;
   }
   
   async upsertFinancialBsEntries(entries: InsertFinancialBsEntry[]): Promise<FinancialBsEntry[]> {
@@ -588,11 +615,38 @@ export class DatabaseStorage implements IStorage {
     return entry;
   }
   
-  async getFinancialPlEntriesByPeriod(periodId: string): Promise<FinancialPlEntry[]> {
-    return db
-      .select()
+  async getFinancialPlEntriesByPeriod(periodId: string): Promise<(FinancialPlEntry & { account: FinancialAccount | null })[]> {
+    const results = await db
+      .select({
+        id: financialPlEntries.id,
+        periodId: financialPlEntries.periodId,
+        accountId: financialPlEntries.accountId,
+        amount: financialPlEntries.amount,
+        notes: financialPlEntries.notes,
+        createdAt: financialPlEntries.createdAt,
+        updatedAt: financialPlEntries.updatedAt,
+        createdBy: financialPlEntries.createdBy,
+        updatedBy: financialPlEntries.updatedBy,
+        account: {
+          id: financialAccounts.id,
+          code: financialAccounts.code,
+          name: financialAccounts.name,
+          nameEn: financialAccounts.nameEn,
+          statementType: financialAccounts.statementType,
+          category: financialAccounts.category,
+          subcategory: financialAccounts.subcategory,
+          displayOrder: financialAccounts.displayOrder,
+          isDebit: financialAccounts.isDebit,
+          isActive: financialAccounts.isActive,
+          description: financialAccounts.description,
+          createdAt: financialAccounts.createdAt,
+          updatedAt: financialAccounts.updatedAt,
+        },
+      })
       .from(financialPlEntries)
+      .leftJoin(financialAccounts, eq(financialPlEntries.accountId, financialAccounts.id))
       .where(eq(financialPlEntries.periodId, periodId));
+    return results;
   }
   
   async upsertFinancialPlEntries(entries: InsertFinancialPlEntry[]): Promise<FinancialPlEntry[]> {
