@@ -29,7 +29,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/user/theme', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
       const { themeColor } = req.body;
       const validThemes = ["blue", "pink", "aqua", "mint", "purple", "orange", "beige"];
       if (!validThemes.includes(themeColor)) {

@@ -32,8 +32,7 @@ export function ThemeColorPicker({ currentTheme = "blue" }: ThemeColorPickerProp
 
   const updateThemeMutation = useMutation({
     mutationFn: async (themeColor: string) => {
-      const res = await apiRequest("PUT", "/api/user/theme", { themeColor });
-      return res.json();
+      return await apiRequest("/api/user/theme", "PUT", { themeColor });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
