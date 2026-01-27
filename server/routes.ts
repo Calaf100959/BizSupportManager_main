@@ -27,6 +27,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/user/theme', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { themeColor } = req.body;
+      const validThemes = ["blue", "pink", "aqua", "mint", "purple", "orange", "beige"];
+      if (!validThemes.includes(themeColor)) {
+        return res.status(400).json({ message: "Invalid theme color" });
+      }
+      const user = await storage.updateUserTheme(userId, themeColor);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating theme:", error);
+      res.status(500).json({ message: "Failed to update theme" });
+    }
+  });
+
   // Office routes
   app.get('/api/offices', isAuthenticated, async (req, res) => {
     try {

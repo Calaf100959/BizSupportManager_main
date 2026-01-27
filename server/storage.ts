@@ -46,6 +46,7 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserTheme(userId: string, themeColor: string): Promise<User>;
   
   // Office operations
   createOffice(office: InsertOffice): Promise<Office>;
@@ -154,6 +155,15 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async updateUserTheme(userId: string, themeColor: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ themeColor, updatedAt: new Date() })
+      .where(eq(users.id, userId))
       .returning();
     return user;
   }

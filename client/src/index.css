@@ -353,3 +353,107 @@
     inset: -1px;
   }
 }
+
+/* Theme Color System */
+:root.theme-pink,
+.theme-pink {
+  --primary: 0 70% 60%;
+  --primary-foreground: 0 70% 98%;
+  --ring: 0 70% 60%;
+  --sidebar-primary: 0 70% 55%;
+  --sidebar-primary-foreground: 0 70% 98%;
+  --sidebar-ring: 0 70% 55%;
+  --chart-1: 0 70% 60%;
+}
+
+:root.theme-aqua,
+.theme-aqua {
+  --primary: 190 80% 50%;
+  --primary-foreground: 190 80% 98%;
+  --ring: 190 80% 50%;
+  --sidebar-primary: 190 80% 45%;
+  --sidebar-primary-foreground: 190 80% 98%;
+  --sidebar-ring: 190 80% 45%;
+  --chart-1: 190 80% 50%;
+}
+
+:root.theme-mint,
+.theme-mint {
+  --primary: 155 60% 50%;
+  --primary-foreground: 155 60% 98%;
+  --ring: 155 60% 50%;
+  --sidebar-primary: 155 60% 45%;
+  --sidebar-primary-foreground: 155 60% 98%;
+  --sidebar-ring: 155 60% 45%;
+  --chart-1: 155 60% 50%;
+}
+
+:root.theme-purple,
+.theme-purple {
+  --primary: 260 50% 65%;
+  --primary-foreground: 260 50% 98%;
+  --ring: 260 50% 65%;
+  --sidebar-primary: 260 50% 60%;
+  --sidebar-primary-foreground: 260 50% 98%;
+  --sidebar-ring: 260 50% 60%;
+  --chart-1: 260 50% 65%;
+}
+
+:root.theme-orange,
+.theme-orange {
+  --primary: 30 90% 55%;
+  --primary-foreground: 30 90% 98%;
+  --ring: 30 90% 55%;
+  --sidebar-primary: 30 90% 50%;
+  --sidebar-primary-foreground: 30 90% 98%;
+  --sidebar-ring: 30 90% 50%;
+  --chart-1: 30 90% 55%;
+}
+
+:root.theme-beige,
+.theme-beige {
+  --primary: 35 40% 60%;
+  --primary-foreground: 35 40% 15%;
+  --ring: 35 40% 60%;
+  --sidebar-primary: 35 40% 55%;
+  --sidebar-primary-foreground: 35 40% 15%;
+  --sidebar-ring: 35 40% 55%;
+  --chart-1: 35 40% 60%;
+}
+
+/* Dark mode theme overrides */
+.dark.theme-pink,
+.dark .theme-pink {
+  --primary: 0 70% 50%;
+  --sidebar-primary: 0 70% 65%;
+}
+
+.dark.theme-aqua,
+.dark .theme-aqua {
+  --primary: 190 80% 40%;
+  --sidebar-primary: 190 80% 55%;
+}
+
+.dark.theme-mint,
+.dark .theme-mint {
+  --primary: 155 60% 40%;
+  --sidebar-primary: 155 60% 55%;
+}
+
+.dark.theme-purple,
+.dark .theme-purple {
+  --primary: 260 50% 55%;
+  --sidebar-primary: 260 50% 70%;
+}
+
+.dark.theme-orange,
+.dark .theme-orange {
+  --primary: 30 90% 45%;
+  --sidebar-primary: 30 90% 60%;
+}
+
+.dark.theme-beige,
+.dark .theme-beige {
+  --primary: 35 40% 50%;
+  --sidebar-primary: 35 40% 65%;
+}

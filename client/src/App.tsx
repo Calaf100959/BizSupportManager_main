@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { useThemeColor } from "@/components/theme-color-picker";
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
 import HomePage from "@/pages/home";
@@ -29,7 +30,8 @@ import FinancialAnalysisPage from "@/pages/financial-analysis";
 import FinancialDashboardPage from "@/pages/financial-dashboard";
 
 function AuthenticatedApp() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  useThemeColor(user?.themeColor);
   const style = {
     "--sidebar-width": "18rem",
   };

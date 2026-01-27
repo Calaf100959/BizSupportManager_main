@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeColorPicker } from "@/components/theme-color-picker";
 
 const menuItems = [
   {
@@ -117,7 +118,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-3">
+        <ThemeColorPicker currentTheme={user?.themeColor || "blue"} />
         <div className="flex items-center gap-3">
           <Avatar>
             {user?.profileImageUrl && <AvatarImage src={user.profileImageUrl} alt={getDisplayName()} />}
