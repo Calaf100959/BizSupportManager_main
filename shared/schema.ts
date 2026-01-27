@@ -473,3 +473,152 @@ export const financialMetrics = pgTable("financial_metrics", {
 });
 
 export type FinancialMetric = typeof financialMetrics.$inferSelect;
+
+// ===== Invoice Management Tables =====
+
+// Company settings (自社情報)
+export const companySettings = pgTable("company_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull().unique(),
+  
+  // Company basic info
+  companyName: varchar("company_name").notNull(),
+  companyNameKana: varchar("company_name_kana"),
+  representativeName: varchar("representative_name"),
+  
+  // Invoice system registration (インボイス制度対応)
+  invoiceRegistrationNumber: varchar("invoice_registration_number"), // T + 13 digits
+  
+  // Address
+  postalCode: varchar("postal_code"),
+  address: text("address"),
+  
+  // Contact
+  phone: varchar("phone"),
+  fax: varchar("fax"),
+  email: varchar("email"),
+  
+  // Bank account info (振込先口座)
+  bankName: varchar("bank_name"),
+  bankBranch: varchar("bank_branch"),
+  bankAccountType: varchar("bank_account_type"), // '普通', '当座'
+  bankAccountNumber: varchar("bank_account_number"),
+  bankAccountHolder: varchar("bank_account_holder"),
+  
+  // Payment terms
+  defaultPaymentTerms: varchar("default_payment_terms"), // e.g., "月末締め翌月末払い"
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCompanySettingsSchema = createInsertSchema(companySettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCompanySettings = z.infer<typeof insertCompanySettingsSchema>;
+export type CompanySettings = typeof companySettings.$inferSelect;
+
+// Invoices (請求書)
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Invoice identification
+  invoiceNumber: varchar("invoice_number").notNull().unique(), // 請求書番号
+  
+  // Client info (links to existing offices table)
+  officeId: varchar("office_id").references(() => offices.id).notNull(),
+  
+  // Invoice dates
+  issueDate: date("issue_date").notNull(), // 発行日
+  dueDate: date("due_date"), // 支払期限
+  
+  // Invoice content (税率ごとの合計)
+  subtotal: integer("subtotal").notNull().default(0), // 税抜合計
+  taxAmount10: integer("tax_amount_10").default(0), // 10%消費税額
+  taxAmount8: integer("tax_amount_8").default(0), // 8%消費税額（軽減税率）
+  totalAmount: integer("total_amount").notNull().default(0), // 税込合計
+  
+  // Status tracking
+  status: varchar("status").notNull().default('下書き'), // '下書き', '発行済', '送付済', '入金済', '一部入金', 'キャンセル'
+  
+  // Payment tracking
+  paidAmount: integer("paid_amount").default(0), // 入金済み金額
+  
+  // Notes
+  notes: text("notes"), // 備考
+  
+  // Email tracking
+  emailSentAt: timestamp("email_sent_at"),
+  emailSentTo: varchar("email_sent_to"),
+  
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+
+// Invoice items (請求書明細)
+export const invoiceItems = pgTable("invoice_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: varchar("invoice_id").references(() => invoices.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Item details
+  description: varchar("description").notNull(), // 品目・内容
+  quantity: integer("quantity").notNull().default(1), // 数量
+  unit: varchar("unit"), // 単位 (個、時間、式など)
+  unitPrice: integer("unit_price").notNull().default(0), // 単価
+  amount: integer("amount").notNull().default(0), // 金額（税抜）
+  
+  // Tax settings
+  taxRate: integer("tax_rate").notNull().default(10), // 10 or 8 (percent)
+  
+  displayOrder: integer("display_order").notNull().default(0),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+
+// Payments (入金記録)
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: varchar("invoice_id").references(() => invoices.id).notNull(),
+  
+  // Payment info
+  paymentDate: date("payment_date").notNull(), // 入金日
+  amount: integer("amount").notNull(), // 入金額
+  paymentMethod: varchar("payment_method"), // '銀行振込', '現金', 'その他'
+  
+  notes: text("notes"),
+  
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;

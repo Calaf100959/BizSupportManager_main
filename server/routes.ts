@@ -8,8 +8,13 @@ import {
   insertKarteSchema, 
   insertWorklogSchema,
   insertSubsidyProgramSchema,
-  insertOfficeSubsidyRecordSchema
+  insertOfficeSubsidyRecordSchema,
+  insertCompanySettingsSchema,
+  insertInvoiceSchema,
+  insertInvoiceItemSchema,
+  insertPaymentSchema,
 } from "@shared/schema";
+import { sendEmail } from "./gmail";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -1278,6 +1283,234 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error calculating metrics:", error);
       res.status(500).json({ message: "Failed to calculate metrics" });
+    }
+  });
+
+  // ===== Company Settings Routes =====
+  
+  app.get('/api/company-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const settings = await storage.getCompanySettings(userId);
+      res.json(settings || null);
+    } catch (error) {
+      console.error("Error fetching company settings:", error);
+      res.status(500).json({ message: "Failed to fetch company settings" });
+    }
+  });
+  
+  app.put('/api/company-settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = insertCompanySettingsSchema.omit({ userId: true }).safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+      const settings = await storage.upsertCompanySettings(userId, result.data);
+      res.json(settings);
+    } catch (error) {
+      console.error("Error saving company settings:", error);
+      res.status(500).json({ message: "Failed to save company settings" });
+    }
+  });
+
+  // ===== Invoice Routes =====
+  
+  app.get('/api/invoices', isAuthenticated, async (req: any, res) => {
+    try {
+      const { status, officeId, startDate, endDate } = req.query;
+      const invoices = await storage.searchInvoices({
+        status: status as string,
+        officeId: officeId as string,
+        startDate: startDate as string,
+        endDate: endDate as string,
+      });
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+  
+  app.get('/api/invoices/next-number', isAuthenticated, async (req: any, res) => {
+    try {
+      const nextNumber = await storage.getNextInvoiceNumber();
+      res.json({ invoiceNumber: nextNumber });
+    } catch (error) {
+      console.error("Error generating invoice number:", error);
+      res.status(500).json({ message: "Failed to generate invoice number" });
+    }
+  });
+  
+  app.get('/api/invoices/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const data = await storage.getInvoiceWithItems(req.params.id);
+      if (!data) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching invoice:", error);
+      res.status(500).json({ message: "Failed to fetch invoice" });
+    }
+  });
+  
+  app.post('/api/invoices', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { items, ...invoiceData } = req.body;
+      
+      // Create invoice
+      const invoice = await storage.createInvoice({
+        ...invoiceData,
+        createdBy: userId,
+      });
+      
+      // Create invoice items
+      if (items && Array.isArray(items)) {
+        for (let i = 0; i < items.length; i++) {
+          await storage.createInvoiceItem({
+            ...items[i],
+            invoiceId: invoice.id,
+            displayOrder: i,
+          });
+        }
+      }
+      
+      const result = await storage.getInvoiceWithItems(invoice.id);
+      res.json(result);
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      res.status(500).json({ message: "Failed to create invoice" });
+    }
+  });
+  
+  app.put('/api/invoices/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { items, ...invoiceData } = req.body;
+      
+      // Update invoice
+      const invoice = await storage.updateInvoice(req.params.id, {
+        ...invoiceData,
+        updatedBy: userId,
+      });
+      
+      // Replace invoice items
+      if (items && Array.isArray(items)) {
+        await storage.deleteInvoiceItemsByInvoice(req.params.id);
+        for (let i = 0; i < items.length; i++) {
+          await storage.createInvoiceItem({
+            ...items[i],
+            invoiceId: invoice.id,
+            displayOrder: i,
+          });
+        }
+      }
+      
+      const result = await storage.getInvoiceWithItems(invoice.id);
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating invoice:", error);
+      res.status(500).json({ message: "Failed to update invoice" });
+    }
+  });
+  
+  app.delete('/api/invoices/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteInvoice(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      res.status(500).json({ message: "Failed to delete invoice" });
+    }
+  });
+  
+  // ===== Payment Routes =====
+  
+  app.get('/api/invoices/:invoiceId/payments', isAuthenticated, async (req: any, res) => {
+    try {
+      const payments = await storage.getPaymentsByInvoice(req.params.invoiceId);
+      res.json(payments);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+  
+  app.post('/api/invoices/:invoiceId/payments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = insertPaymentSchema.safeParse({
+        ...req.body,
+        invoiceId: req.params.invoiceId,
+        createdBy: userId,
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+      const payment = await storage.createPayment(result.data);
+      res.json(payment);
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      res.status(500).json({ message: "Failed to create payment" });
+    }
+  });
+  
+  app.delete('/api/payments/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deletePayment(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      res.status(500).json({ message: "Failed to delete payment" });
+    }
+  });
+  
+  // ===== Invoice Email Route =====
+  
+  app.post('/api/invoices/:id/send-email', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { to, subject, body, pdfBase64 } = req.body;
+      
+      if (!to || !subject || !body) {
+        return res.status(400).json({ message: "Missing required fields: to, subject, body" });
+      }
+      
+      const invoiceData = await storage.getInvoiceWithItems(req.params.id);
+      if (!invoiceData) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const attachments = pdfBase64 ? [{
+        filename: `請求書_${invoiceData.invoice.invoiceNumber}.pdf`,
+        content: pdfBase64,
+        mimeType: 'application/pdf',
+      }] : undefined;
+      
+      const result = await sendEmail({
+        to,
+        subject,
+        body,
+        attachments,
+      });
+      
+      if (result.success) {
+        // Update invoice status and email tracking
+        await storage.updateInvoice(req.params.id, {
+          status: '送付済',
+          emailSentAt: new Date(),
+          emailSentTo: to,
+          updatedBy: userId,
+        });
+        res.json({ success: true, messageId: result.messageId });
+      } else {
+        res.status(500).json({ message: result.error || "Failed to send email" });
+      }
+    } catch (error) {
+      console.error("Error sending invoice email:", error);
+      res.status(500).json({ message: "Failed to send invoice email" });
     }
   });
 

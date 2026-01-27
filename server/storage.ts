@@ -13,6 +13,10 @@ import {
   financialPlEntries,
   financialCashflows,
   financialMetrics,
+  companySettings,
+  invoices,
+  invoiceItems,
+  payments,
   type User,
   type UpsertUser,
   type Office,
@@ -38,6 +42,14 @@ import {
   type InsertFinancialPlEntry,
   type FinancialCashflow,
   type FinancialMetric,
+  type CompanySettings,
+  type InsertCompanySettings,
+  type Invoice,
+  type InsertInvoice,
+  type InvoiceItem,
+  type InsertInvoiceItem,
+  type Payment,
+  type InsertPayment,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, ilike, sql, and } from "drizzle-orm";
@@ -136,6 +148,33 @@ export interface IStorage {
   // Financial metrics operations
   getFinancialMetricsByPeriod(periodId: string): Promise<FinancialMetric | undefined>;
   upsertFinancialMetrics(periodId: string, metrics: Partial<FinancialMetric>): Promise<FinancialMetric>;
+  
+  // Company settings operations
+  getCompanySettings(userId: string): Promise<CompanySettings | undefined>;
+  upsertCompanySettings(userId: string, settings: Omit<InsertCompanySettings, 'userId'>): Promise<CompanySettings>;
+  
+  // Invoice operations
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  getInvoice(id: string): Promise<Invoice | undefined>;
+  getInvoiceWithItems(id: string): Promise<{ invoice: Invoice; items: InvoiceItem[]; office: Office } | undefined>;
+  getInvoicesByUser(userId: string): Promise<Invoice[]>;
+  getInvoicesByOffice(officeId: string): Promise<Invoice[]>;
+  searchInvoices(query: { status?: string; officeId?: string; startDate?: string; endDate?: string }): Promise<Invoice[]>;
+  updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice>;
+  deleteInvoice(id: string): Promise<void>;
+  getNextInvoiceNumber(): Promise<string>;
+  
+  // Invoice item operations
+  createInvoiceItem(item: InsertInvoiceItem): Promise<InvoiceItem>;
+  getInvoiceItemsByInvoice(invoiceId: string): Promise<InvoiceItem[]>;
+  updateInvoiceItem(id: string, item: Partial<InsertInvoiceItem>): Promise<InvoiceItem>;
+  deleteInvoiceItem(id: string): Promise<void>;
+  deleteInvoiceItemsByInvoice(invoiceId: string): Promise<void>;
+  
+  // Payment operations
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentsByInvoice(invoiceId: string): Promise<Payment[]>;
+  deletePayment(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -745,6 +784,220 @@ export class DatabaseStorage implements IStorage {
         .values({ ...metricsData, periodId })
         .returning();
       return created;
+    }
+  }
+  
+  // Company settings operations
+  async getCompanySettings(userId: string): Promise<CompanySettings | undefined> {
+    const [settings] = await db.select().from(companySettings).where(eq(companySettings.userId, userId));
+    return settings;
+  }
+  
+  async upsertCompanySettings(userId: string, settingsData: Omit<InsertCompanySettings, 'userId'>): Promise<CompanySettings> {
+    const existing = await this.getCompanySettings(userId);
+    if (existing) {
+      const [updated] = await db
+        .update(companySettings)
+        .set({ ...settingsData, updatedAt: new Date() })
+        .where(eq(companySettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(companySettings)
+        .values({ ...settingsData, userId })
+        .returning();
+      return created;
+    }
+  }
+  
+  // Invoice operations
+  async createInvoice(invoiceData: InsertInvoice): Promise<Invoice> {
+    const [invoice] = await db.insert(invoices).values(invoiceData).returning();
+    return invoice;
+  }
+  
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
+    return invoice;
+  }
+  
+  async getInvoiceWithItems(id: string): Promise<{ invoice: Invoice; items: InvoiceItem[]; office: Office } | undefined> {
+    const invoice = await this.getInvoice(id);
+    if (!invoice) return undefined;
+    
+    const items = await this.getInvoiceItemsByInvoice(id);
+    const office = await this.getOffice(invoice.officeId);
+    if (!office) return undefined;
+    
+    return { invoice, items, office };
+  }
+  
+  async getInvoicesByUser(userId: string): Promise<Invoice[]> {
+    return db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.createdBy, userId))
+      .orderBy(sql`${invoices.issueDate} DESC`);
+  }
+  
+  async getInvoicesByOffice(officeId: string): Promise<Invoice[]> {
+    return db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.officeId, officeId))
+      .orderBy(sql`${invoices.issueDate} DESC`);
+  }
+  
+  async searchInvoices(query: { status?: string; officeId?: string; startDate?: string; endDate?: string }): Promise<Invoice[]> {
+    const conditions = [];
+    
+    if (query.status) {
+      conditions.push(eq(invoices.status, query.status));
+    }
+    if (query.officeId) {
+      conditions.push(eq(invoices.officeId, query.officeId));
+    }
+    if (query.startDate) {
+      conditions.push(sql`${invoices.issueDate} >= ${query.startDate}`);
+    }
+    if (query.endDate) {
+      conditions.push(sql`${invoices.issueDate} <= ${query.endDate}`);
+    }
+    
+    if (conditions.length === 0) {
+      return db.select().from(invoices).orderBy(sql`${invoices.issueDate} DESC`);
+    }
+    
+    return db.select().from(invoices).where(and(...conditions)).orderBy(sql`${invoices.issueDate} DESC`);
+  }
+  
+  async updateInvoice(id: string, invoiceData: Partial<InsertInvoice>): Promise<Invoice> {
+    const [invoice] = await db
+      .update(invoices)
+      .set({ ...invoiceData, updatedAt: new Date() })
+      .where(eq(invoices.id, id))
+      .returning();
+    return invoice;
+  }
+  
+  async deleteInvoice(id: string): Promise<void> {
+    await db.delete(payments).where(eq(payments.invoiceId, id));
+    await db.delete(invoiceItems).where(eq(invoiceItems.invoiceId, id));
+    await db.delete(invoices).where(eq(invoices.id, id));
+  }
+  
+  async getNextInvoiceNumber(): Promise<string> {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `INV-${year}${month}`;
+    
+    const [latest] = await db
+      .select()
+      .from(invoices)
+      .where(sql`${invoices.invoiceNumber} LIKE ${prefix + '%'}`)
+      .orderBy(sql`${invoices.invoiceNumber} DESC`)
+      .limit(1);
+    
+    if (latest) {
+      const lastNumber = parseInt(latest.invoiceNumber.split('-').pop() || '0', 10);
+      return `${prefix}-${String(lastNumber + 1).padStart(4, '0')}`;
+    }
+    return `${prefix}-0001`;
+  }
+  
+  // Invoice item operations
+  async createInvoiceItem(itemData: InsertInvoiceItem): Promise<InvoiceItem> {
+    const [item] = await db.insert(invoiceItems).values(itemData).returning();
+    return item;
+  }
+  
+  async getInvoiceItemsByInvoice(invoiceId: string): Promise<InvoiceItem[]> {
+    return db
+      .select()
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, invoiceId))
+      .orderBy(sql`${invoiceItems.displayOrder} ASC`);
+  }
+  
+  async updateInvoiceItem(id: string, itemData: Partial<InsertInvoiceItem>): Promise<InvoiceItem> {
+    const [item] = await db
+      .update(invoiceItems)
+      .set({ ...itemData, updatedAt: new Date() })
+      .where(eq(invoiceItems.id, id))
+      .returning();
+    return item;
+  }
+  
+  async deleteInvoiceItem(id: string): Promise<void> {
+    await db.delete(invoiceItems).where(eq(invoiceItems.id, id));
+  }
+  
+  async deleteInvoiceItemsByInvoice(invoiceId: string): Promise<void> {
+    await db.delete(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
+  }
+  
+  // Payment operations
+  async createPayment(paymentData: InsertPayment): Promise<Payment> {
+    const [payment] = await db.insert(payments).values(paymentData).returning();
+    
+    // Update invoice paid amount and status
+    const invoice = await this.getInvoice(paymentData.invoiceId);
+    if (invoice) {
+      const allPayments = await this.getPaymentsByInvoice(paymentData.invoiceId);
+      const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+      
+      let newStatus = invoice.status;
+      if (totalPaid >= invoice.totalAmount) {
+        newStatus = '入金済';
+      } else if (totalPaid > 0) {
+        newStatus = '一部入金';
+      }
+      
+      await this.updateInvoice(paymentData.invoiceId, {
+        paidAmount: totalPaid,
+        status: newStatus,
+        updatedBy: paymentData.createdBy,
+      });
+    }
+    
+    return payment;
+  }
+  
+  async getPaymentsByInvoice(invoiceId: string): Promise<Payment[]> {
+    return db
+      .select()
+      .from(payments)
+      .where(eq(payments.invoiceId, invoiceId))
+      .orderBy(sql`${payments.paymentDate} DESC`);
+  }
+  
+  async deletePayment(id: string): Promise<void> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    if (!payment) return;
+    
+    await db.delete(payments).where(eq(payments.id, id));
+    
+    // Recalculate invoice paid amount
+    const invoice = await this.getInvoice(payment.invoiceId);
+    if (invoice) {
+      const remainingPayments = await this.getPaymentsByInvoice(payment.invoiceId);
+      const totalPaid = remainingPayments.reduce((sum, p) => sum + p.amount, 0);
+      
+      let newStatus = invoice.status;
+      if (totalPaid >= invoice.totalAmount) {
+        newStatus = '入金済';
+      } else if (totalPaid > 0) {
+        newStatus = '一部入金';
+      } else if (invoice.status === '入金済' || invoice.status === '一部入金') {
+        newStatus = '送付済';
+      }
+      
+      await this.updateInvoice(payment.invoiceId, {
+        paidAmount: totalPaid,
+        status: newStatus,
+      });
     }
   }
 }
