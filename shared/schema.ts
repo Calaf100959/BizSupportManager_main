@@ -31,6 +31,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   themeColor: varchar("theme_color").default("blue"), // blue, pink, aqua, mint, purple, orange, beige
+  dashboardLayout: jsonb("dashboard_layout"), // Array of widget IDs for custom ordering
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
