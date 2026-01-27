@@ -46,6 +46,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/user/dashboard-layout', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      const { layout } = req.body;
+      if (!Array.isArray(layout)) {
+        return res.status(400).json({ message: "Invalid layout format" });
+      }
+      const validWidgets = ["stats", "activity", "quickActions", "reminders", "health"];
+      const isValid = layout.every((id: string) => validWidgets.includes(id));
+      if (!isValid) {
+        return res.status(400).json({ message: "Invalid widget ID in layout" });
+      }
+      const user = await storage.updateUserDashboardLayout(userId, layout);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating dashboard layout:", error);
+      res.status(500).json({ message: "Failed to update dashboard layout" });
+    }
+  });
+
   // Office routes
   app.get('/api/offices', isAuthenticated, async (req, res) => {
     try {

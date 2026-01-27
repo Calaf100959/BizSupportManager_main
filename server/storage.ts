@@ -47,6 +47,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserTheme(userId: string, themeColor: string): Promise<User>;
+  updateUserDashboardLayout(userId: string, layout: string[]): Promise<User>;
   
   // Office operations
   createOffice(office: InsertOffice): Promise<Office>;
@@ -163,6 +164,15 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({ themeColor, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserDashboardLayout(userId: string, layout: string[]): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ dashboardLayout: layout, updatedAt: new Date() })
       .where(eq(users.id, userId))
       .returning();
     return user;
