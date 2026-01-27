@@ -32,10 +32,12 @@ Preferred communication style: Simple, everyday language.
     *   **Subsidy Program Management:** Comprehensive management of subsidy programs, including status tracking, multi-URL support, and linkage to offices.
     *   **Visit Reminders:** Tracks upcoming visits with a dashboard and a detailed view, urgency-based color coding.
     *   **Health Snapshot:** Provides an overview of client engagement health (healthy, warning, critical) with detailed statistics and filtering.
+    *   **Invoice Management:** Complete invoice creation system with Invoice制度対応 (Japanese qualified invoice system compliance), 10%/8% tax rate support, auto-numbering (INV-YYYYMM-####), payment tracking (消込) with auto-status updates, and Gmail integration for sending invoices.
+    *   **Company Settings:** User-specific business information including invoice registration number (T+13 digits), bank account details for invoices, and default payment terms.
 
 ### Database Schema
 
-*   **Core Tables:** `users`, `offices`, `persons`, `kartes`, `worklogs`, `sessions`.
+*   **Core Tables:** `users`, `offices`, `persons`, `kartes`, `worklogs`, `sessions`, `company_settings`, `invoices`, `invoice_items`, `payments`.
 *   **Schema Design:** UUID primary keys, `createdAt`/`updatedAt` timestamps, normalized data structures with foreign key relationships, flexible text fields for Japanese content, Drizzle-Zod integration for schema validation.
 
 ### Authentication & Authorization

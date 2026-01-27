@@ -28,6 +28,10 @@ import FinancialBsPage from "@/pages/financial-bs";
 import FinancialImportPage from "@/pages/financial-import";
 import FinancialAnalysisPage from "@/pages/financial-analysis";
 import FinancialDashboardPage from "@/pages/financial-dashboard";
+import CompanySettingsPage from "@/pages/company-settings";
+import InvoicesPage from "@/pages/invoices";
+import InvoiceFormPage from "@/pages/invoice-form";
+import InvoiceDetailPage from "@/pages/invoice-detail";
 
 function AuthenticatedApp() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -83,6 +87,11 @@ function AuthenticatedApp() {
               <Route path="/worklog" component={WorklogPage} />
               <Route path="/subsidy-programs" component={SubsidyProgramsPage} />
               <Route path="/subsidy-program/:id" component={SubsidyProgramDetailPage} />
+              <Route path="/company-settings" component={CompanySettingsPage} />
+              <Route path="/invoices" component={InvoicesPage} />
+              <Route path="/invoices/new" component={InvoiceFormPage} />
+              <Route path="/invoices/:id/detail" component={InvoiceDetailPage} />
+              <Route path="/invoices/:id/edit" component={InvoiceFormPage} />
               <Route component={NotFound} />
             </Switch>
           </main>
