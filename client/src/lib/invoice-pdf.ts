@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 import { type Invoice, type InvoiceItem, type Office, type CompanySettings } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -11,224 +11,227 @@ interface InvoiceData {
 }
 
 const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('ja-JP').format(amount);
+  return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(amount);
 };
 
-export async function generateInvoicePDF(data: InvoiceData): Promise<jsPDF> {
+// 印刷ビューのHTMLを生成する関数
+function createInvoiceHTML(data: InvoiceData): string {
   const { invoice, items, office, companySettings } = data;
   
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  });
+  const itemsHTML = items.map((item) => `
+    <tr>
+      <td class="border border-gray-300 p-2">${item.description}</td>
+      <td class="border border-gray-300 p-2 text-right">${item.quantity}</td>
+      <td class="border border-gray-300 p-2 text-center">${item.unit || "-"}</td>
+      <td class="border border-gray-300 p-2 text-right font-mono">${formatCurrency(item.unitPrice)}</td>
+      <td class="border border-gray-300 p-2 text-center">
+        ${item.taxRate}%${item.taxRate === 8 ? "※" : ""}
+      </td>
+      <td class="border border-gray-300 p-2 text-right font-mono">${formatCurrency(item.amount)}</td>
+    </tr>
+  `).join("");
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  let yPos = 25;
+  const companySettingsHTML = companySettings ? `
+    <hr class="my-6 border-gray-300" />
+    <div class="grid grid-cols-2 gap-8 text-sm">
+      <div class="space-y-1">
+        <div class="font-bold mb-2">請求元</div>
+        ${companySettings.companyName ? `<div class="font-bold">${companySettings.companyName}</div>` : ""}
+        ${companySettings.representativeName ? `<div>代表者: ${companySettings.representativeName}</div>` : ""}
+        ${companySettings.postalCode || companySettings.address ? `
+          <div>
+            ${companySettings.postalCode ? `〒${companySettings.postalCode} ` : ""}
+            ${companySettings.address || ""}
+          </div>
+        ` : ""}
+        ${companySettings.phone ? `<div>TEL: ${companySettings.phone}</div>` : ""}
+        ${companySettings.email ? `<div>Email: ${companySettings.email}</div>` : ""}
+        ${companySettings.invoiceRegistrationNumber ? `
+          <div class="font-bold mt-2">
+            登録番号: ${companySettings.invoiceRegistrationNumber}
+          </div>
+        ` : ""}
+      </div>
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(24);
-  doc.text("INVOICE", pageWidth / 2, yPos, { align: "center" });
-  
-  doc.setFontSize(12);
-  doc.text("請求書", pageWidth / 2, yPos + 8, { align: "center" });
-  
-  yPos += 20;
+      ${companySettings.bankName ? `
+        <div class="space-y-1">
+          <div class="font-bold mb-2">振込先口座</div>
+          <div>${companySettings.bankName} ${companySettings.bankBranch || ""}</div>
+          <div>${companySettings.bankAccountType || ""} ${companySettings.bankAccountNumber || ""}</div>
+          ${companySettings.bankAccountHolder ? `<div>口座名義: ${companySettings.bankAccountHolder}</div>` : ""}
+        </div>
+      ` : ""}
+    </div>
+  ` : "";
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`No. ${invoice.invoiceNumber}`, pageWidth - margin, yPos, { align: "right" });
-  yPos += 6;
-  doc.text(`発行日: ${format(new Date(invoice.issueDate), "yyyy年MM月dd日")}`, pageWidth - margin, yPos, { align: "right" });
-  if (invoice.dueDate) {
-    yPos += 6;
-    doc.text(`支払期限: ${format(new Date(invoice.dueDate), "yyyy年MM月dd日")}`, pageWidth - margin, yPos, { align: "right" });
-  }
+  return `
+    <div style="background: white; color: black; padding: 32px; max-width: 210mm; margin: 0 auto; font-family: 'Noto Sans JP', sans-serif;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h1 style="font-size: 30px; font-weight: bold; margin-bottom: 4px;">請求書</h1>
+        <p style="font-size: 14px; color: #666;">INVOICE</p>
+      </div>
 
-  yPos += 15;
+      <div style="display: flex; justify-content: space-between; margin-bottom: 32px;">
+        <div style="line-height: 1.6;">
+          <div style="font-size: 20px; font-weight: bold;">${office.name} 御中</div>
+          ${office.postalCode ? `<div style="font-size: 14px;">〒${office.postalCode}</div>` : ""}
+          ${office.address ? `<div style="font-size: 14px;">${office.address}</div>` : ""}
+          ${office.phone1 ? `<div style="font-size: 14px;">TEL: ${office.phone1}</div>` : ""}
+        </div>
+        
+        <div style="text-align: right; line-height: 1.6;">
+          <div style="font-family: monospace; font-weight: bold;">No. ${invoice.invoiceNumber}</div>
+          <div style="font-size: 14px;">発行日: ${format(new Date(invoice.issueDate), "yyyy年MM月dd日")}</div>
+          ${invoice.dueDate ? `
+            <div style="font-size: 14px;">支払期限: ${format(new Date(invoice.dueDate), "yyyy年MM月dd日")}</div>
+          ` : ""}
+        </div>
+      </div>
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text(office.name || "", margin, yPos);
-  doc.setFontSize(12);
-  doc.text(" 御中", margin + doc.getTextWidth(office.name || ""), yPos);
-  
-  yPos += 8;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  
-  if (office.postalCode) {
-    doc.text(`〒${office.postalCode}`, margin, yPos);
-    yPos += 5;
-  }
-  if (office.address) {
-    doc.text(office.address, margin, yPos);
-    yPos += 5;
-  }
+      <div style="margin-bottom: 32px; padding: 16px; background: #f9fafb; border: 2px solid #1f2937; display: inline-block;">
+        <div style="font-size: 18px; font-weight: bold;">
+          合計金額: ${formatCurrency(invoice.totalAmount)}（税込）
+        </div>
+      </div>
 
-  yPos += 10;
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+        <thead>
+          <tr style="background: #1f2937; color: white;">
+            <th style="border: 1px solid #9ca3af; padding: 8px; text-align: left;">品目・内容</th>
+            <th style="border: 1px solid #9ca3af; padding: 8px; text-align: right; width: 64px;">数量</th>
+            <th style="border: 1px solid #9ca3af; padding: 8px; text-align: center; width: 48px;">単位</th>
+            <th style="border: 1px solid #9ca3af; padding: 8px; text-align: right; width: 96px;">単価</th>
+            <th style="border: 1px solid #9ca3af; padding: 8px; text-align: center; width: 64px;">税率</th>
+            <th style="border: 1px solid #9ca3af; padding: 8px; text-align: right; width: 112px;">金額</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHTML}
+        </tbody>
+      </table>
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  const totalText = `合計金額: ¥${formatCurrency(invoice.totalAmount)}`;
-  doc.text(totalText, margin, yPos);
-  
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.5);
-  doc.line(margin, yPos + 2, margin + doc.getTextWidth(totalText), yPos + 2);
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 24px;">
+        <div style="width: 256px; line-height: 1.6;">
+          <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+            <span>小計（税抜）</span>
+            <span style="font-family: monospace;">${formatCurrency(invoice.subtotal)}</span>
+          </div>
+          ${(invoice.taxAmount10 || 0) > 0 ? `
+            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+              <span>消費税（10%）</span>
+              <span style="font-family: monospace;">${formatCurrency(invoice.taxAmount10 || 0)}</span>
+            </div>
+          ` : ""}
+          ${(invoice.taxAmount8 || 0) > 0 ? `
+            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+              <span>消費税（8%）※</span>
+              <span style="font-family: monospace;">${formatCurrency(invoice.taxAmount8 || 0)}</span>
+            </div>
+          ` : ""}
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 2px solid #1f2937; font-weight: bold; font-size: 18px;">
+            <span>合計（税込）</span>
+            <span style="font-family: monospace;">${formatCurrency(invoice.totalAmount)}</span>
+          </div>
+        </div>
+      </div>
 
-  yPos += 20;
+      ${(invoice.taxAmount8 || 0) > 0 ? `
+        <p style="font-size: 12px; color: #666; margin-bottom: 24px;">※ 軽減税率対象品目</p>
+      ` : ""}
 
-  const tableData = items.map((item) => [
-    item.description,
-    item.quantity.toString(),
-    item.unit || "-",
-    `¥${formatCurrency(item.unitPrice)}`,
-    `${item.taxRate}%${item.taxRate === 8 ? "*" : ""}`,
-    `¥${formatCurrency(item.amount)}`,
-  ]);
+      ${companySettingsHTML}
 
-  autoTable(doc, {
-    startY: yPos,
-    head: [["品目・内容", "数量", "単位", "単価", "税率", "金額"]],
-    body: tableData,
-    theme: "grid",
-    headStyles: {
-      fillColor: [60, 60, 60],
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      halign: "center",
-    },
-    columnStyles: {
-      0: { halign: "left", cellWidth: 60 },
-      1: { halign: "right", cellWidth: 20 },
-      2: { halign: "center", cellWidth: 15 },
-      3: { halign: "right", cellWidth: 30 },
-      4: { halign: "center", cellWidth: 20 },
-      5: { halign: "right", cellWidth: 30 },
-    },
-    styles: {
-      fontSize: 9,
-      cellPadding: 3,
-    },
-    margin: { left: margin, right: margin },
-  });
-
-  yPos = (doc as any).lastAutoTable.finalY + 10;
-
-  const summaryX = pageWidth - margin - 70;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-
-  doc.text("小計（税抜）", summaryX, yPos);
-  doc.text(`¥${formatCurrency(invoice.subtotal)}`, pageWidth - margin, yPos, { align: "right" });
-  yPos += 6;
-
-  if ((invoice.taxAmount10 || 0) > 0) {
-    doc.text("消費税（10%）", summaryX, yPos);
-    doc.text(`¥${formatCurrency(invoice.taxAmount10 || 0)}`, pageWidth - margin, yPos, { align: "right" });
-    yPos += 6;
-  }
-
-  if ((invoice.taxAmount8 || 0) > 0) {
-    doc.text("消費税（8%）*", summaryX, yPos);
-    doc.text(`¥${formatCurrency(invoice.taxAmount8 || 0)}`, pageWidth - margin, yPos, { align: "right" });
-    yPos += 6;
-  }
-
-  doc.setLineWidth(0.3);
-  doc.line(summaryX, yPos, pageWidth - margin, yPos);
-  yPos += 5;
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("合計（税込）", summaryX, yPos);
-  doc.text(`¥${formatCurrency(invoice.totalAmount)}`, pageWidth - margin, yPos, { align: "right" });
-
-  yPos += 8;
-  if ((invoice.taxAmount8 || 0) > 0) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.text("* 軽減税率対象品目", margin, yPos);
-  }
-
-  yPos += 15;
-
-  if (companySettings) {
-    doc.setLineWidth(0.3);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 10;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("請求元情報", margin, yPos);
-    yPos += 8;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-
-    if (companySettings.companyName) {
-      doc.text(companySettings.companyName, margin, yPos);
-      yPos += 5;
-    }
-    if (companySettings.representativeName) {
-      doc.text(`代表者: ${companySettings.representativeName}`, margin, yPos);
-      yPos += 5;
-    }
-    if (companySettings.postalCode || companySettings.address) {
-      const addressLine = [
-        companySettings.postalCode ? `〒${companySettings.postalCode}` : "",
-        companySettings.address || "",
-      ].filter(Boolean).join(" ");
-      doc.text(addressLine, margin, yPos);
-      yPos += 5;
-    }
-    if (companySettings.phone) {
-      doc.text(`TEL: ${companySettings.phone}`, margin, yPos);
-      yPos += 5;
-    }
-    if (companySettings.email) {
-      doc.text(`Email: ${companySettings.email}`, margin, yPos);
-      yPos += 5;
-    }
-    if (companySettings.invoiceRegistrationNumber) {
-      doc.setFont("helvetica", "bold");
-      doc.text(`登録番号: ${companySettings.invoiceRegistrationNumber}`, margin, yPos);
-      yPos += 5;
-    }
-
-    if (companySettings.bankName) {
-      yPos += 8;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text("振込先口座", margin, yPos);
-      yPos += 7;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const bankInfo = [
-        companySettings.bankName,
-        companySettings.bankBranch,
-        companySettings.bankAccountType,
-        companySettings.bankAccountNumber,
-      ].filter(Boolean).join(" ");
-      doc.text(bankInfo, margin, yPos);
-      yPos += 5;
-      
-      if (companySettings.bankAccountHolder) {
-        doc.text(`口座名義: ${companySettings.bankAccountHolder}`, margin, yPos);
-      }
-    }
-  }
-
-  return doc;
+      ${invoice.notes ? `
+        <div style="margin-top: 24px; padding: 16px; background: #f9fafb; border: 1px solid #d1d5db; border-radius: 4px;">
+          <div style="font-weight: bold; margin-bottom: 8px;">備考</div>
+          <div style="font-size: 14px; white-space: pre-wrap;">${invoice.notes}</div>
+        </div>
+      ` : ""}
+    </div>
+  `;
 }
 
-export function downloadInvoicePDF(data: InvoiceData): void {
-  generateInvoicePDF(data).then((doc) => {
-    doc.save(`${data.invoice.invoiceNumber}.pdf`);
-  });
+export async function generateInvoicePDF(data: InvoiceData): Promise<jsPDF> {
+  // 一時的なコンテナを作成
+  const container = document.createElement("div");
+  container.style.position = "absolute";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.style.width = "210mm"; // A4幅
+  container.innerHTML = createInvoiceHTML(data);
+  document.body.appendChild(container);
+
+  try {
+    // html2canvasでキャプチャ
+    const canvas = await html2canvas(container, {
+      scale: 2, // 高解像度化
+      useCORS: true,
+      logging: false,
+      backgroundColor: "#ffffff",
+    });
+
+    // PDFを作成
+    const imgWidth = 210; // A4幅 (mm)
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    
+    const doc = new jsPDF({
+      orientation: imgHeight > 297 ? "portrait" : "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    
+    // 1ページに収まる場合
+    if (imgHeight <= 297) {
+      doc.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    } else {
+      // 複数ページに分割
+      let position = 0;
+      const pageHeight = 297;
+      
+      while (position < imgHeight) {
+        if (position > 0) {
+          doc.addPage();
+        }
+        
+        const sourceY = (position * canvas.width) / imgWidth;
+        const sourceHeight = Math.min((pageHeight * canvas.width) / imgWidth, canvas.height - sourceY);
+        
+        // キャンバスから部分的に切り取り
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sourceHeight;
+        const ctx = pageCanvas.getContext("2d");
+        
+        if (ctx) {
+          ctx.drawImage(
+            canvas,
+            0, sourceY,
+            canvas.width, sourceHeight,
+            0, 0,
+            canvas.width, sourceHeight
+          );
+          
+          const pageImgData = pageCanvas.toDataURL("image/png");
+          const pageImgHeight = (sourceHeight * imgWidth) / canvas.width;
+          doc.addImage(pageImgData, "PNG", 0, 0, imgWidth, pageImgHeight);
+        }
+        
+        position += pageHeight;
+      }
+    }
+
+    return doc;
+  } finally {
+    // 一時コンテナを削除
+    document.body.removeChild(container);
+  }
+}
+
+export async function downloadInvoicePDF(data: InvoiceData): Promise<void> {
+  const doc = await generateInvoicePDF(data);
+  doc.save(`${data.invoice.invoiceNumber}.pdf`);
 }
 
 export async function getInvoicePDFBase64(data: InvoiceData): Promise<string> {

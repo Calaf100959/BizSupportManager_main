@@ -193,15 +193,20 @@ export default function InvoiceDetailPage() {
     }, 100);
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (data) {
-      downloadInvoicePDF({
-        invoice: data.invoice,
-        items: data.items,
-        office: data.office,
-        companySettings: companySettings || null,
-      });
-      toast({ title: "PDFをダウンロードしました" });
+      try {
+        await downloadInvoicePDF({
+          invoice: data.invoice,
+          items: data.items,
+          office: data.office,
+          companySettings: companySettings || null,
+        });
+        toast({ title: "PDFをダウンロードしました" });
+      } catch (error) {
+        console.error("PDF generation error:", error);
+        toast({ title: "PDF生成に失敗しました", variant: "destructive" });
+      }
     }
   };
 
