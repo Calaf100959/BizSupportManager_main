@@ -476,7 +476,76 @@ export type FinancialMetric = typeof financialMetrics.$inferSelect;
 
 // ===== Invoice Management Tables =====
 
-// Company settings (自社情報)
+// Companies (自社情報) - Support multiple companies per user
+export const companies = pgTable("companies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Company basic info
+  companyName: varchar("company_name").notNull(),
+  companyNameKana: varchar("company_name_kana"),
+  representativeName: varchar("representative_name"),
+  
+  // Invoice system registration (インボイス制度対応)
+  invoiceRegistrationNumber: varchar("invoice_registration_number"), // T + 13 digits
+  
+  // Address
+  postalCode: varchar("postal_code"),
+  address: text("address"),
+  
+  // Contact
+  phone: varchar("phone"),
+  fax: varchar("fax"),
+  email: varchar("email"),
+  
+  // Payment terms
+  defaultPaymentTerms: varchar("default_payment_terms"), // e.g., "月末締め翌月末払い"
+  
+  // Default flag
+  isDefault: varchar("is_default").default('false'), // 'true' or 'false' - デフォルトの会社
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
+
+// Bank accounts (振込先口座) - Multiple accounts per company
+export const bankAccounts = pgTable("bank_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").references(() => companies.id, { onDelete: 'cascade' }).notNull(),
+  
+  accountName: varchar("account_name").notNull(), // 口座名称（表示用）e.g., "メイン口座", "サブ口座"
+  bankName: varchar("bank_name").notNull(),
+  bankBranch: varchar("bank_branch").notNull(),
+  bankAccountType: varchar("bank_account_type").notNull(), // '普通', '当座'
+  bankAccountNumber: varchar("bank_account_number").notNull(),
+  bankAccountHolder: varchar("bank_account_holder").notNull(),
+  
+  // Default flag for this company
+  isDefault: varchar("is_default").default('false'), // 'true' or 'false' - この会社のデフォルト口座
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBankAccountSchema = createInsertSchema(bankAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBankAccount = z.infer<typeof insertBankAccountSchema>;
+export type BankAccount = typeof bankAccounts.$inferSelect;
+
+// Legacy: Keep companySettings table for backward compatibility and migration
 export const companySettings = pgTable("company_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull().unique(),
@@ -530,6 +599,12 @@ export const invoices = pgTable("invoices", {
   
   // Client info (links to existing offices table)
   officeId: varchar("office_id").references(() => offices.id).notNull(),
+  
+  // Company info (自社情報) - which company is issuing this invoice
+  companyId: varchar("company_id").references(() => companies.id),
+  
+  // Bank account info (振込先口座) - which bank account to use for payment
+  bankAccountId: varchar("bank_account_id").references(() => bankAccounts.id),
   
   // Invoice dates
   issueDate: date("issue_date").notNull(), // 発行日

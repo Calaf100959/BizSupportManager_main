@@ -13,6 +13,8 @@ import {
   financialPlEntries,
   financialCashflows,
   financialMetrics,
+  companies,
+  bankAccounts,
   companySettings,
   invoices,
   invoiceItems,
@@ -42,6 +44,10 @@ import {
   type InsertFinancialPlEntry,
   type FinancialCashflow,
   type FinancialMetric,
+  type Company,
+  type InsertCompany,
+  type BankAccount,
+  type InsertBankAccount,
   type CompanySettings,
   type InsertCompanySettings,
   type Invoice,
@@ -149,7 +155,25 @@ export interface IStorage {
   getFinancialMetricsByPeriod(periodId: string): Promise<FinancialMetric | undefined>;
   upsertFinancialMetrics(periodId: string, metrics: Partial<FinancialMetric>): Promise<FinancialMetric>;
   
-  // Company settings operations
+  // Company operations (新しい複数会社対応)
+  createCompany(company: InsertCompany): Promise<Company>;
+  getCompany(id: string): Promise<Company | undefined>;
+  getCompaniesByUser(userId: string): Promise<Company[]>;
+  getDefaultCompany(userId: string): Promise<Company | undefined>;
+  updateCompany(id: string, company: Partial<InsertCompany>): Promise<Company>;
+  deleteCompany(id: string): Promise<void>;
+  setDefaultCompany(userId: string, companyId: string): Promise<void>;
+  
+  // Bank account operations (新しい複数口座対応)
+  createBankAccount(account: InsertBankAccount): Promise<BankAccount>;
+  getBankAccount(id: string): Promise<BankAccount | undefined>;
+  getBankAccountsByCompany(companyId: string): Promise<BankAccount[]>;
+  getDefaultBankAccount(companyId: string): Promise<BankAccount | undefined>;
+  updateBankAccount(id: string, account: Partial<InsertBankAccount>): Promise<BankAccount>;
+  deleteBankAccount(id: string): Promise<void>;
+  setDefaultBankAccount(companyId: string, accountId: string): Promise<void>;
+  
+  // Company settings operations (レガシー - 後方互換性のため)
   getCompanySettings(userId: string): Promise<CompanySettings | undefined>;
   upsertCompanySettings(userId: string, settings: Omit<InsertCompanySettings, 'userId'>): Promise<CompanySettings>;
   
@@ -787,7 +811,103 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  // Company settings operations
+  // Company operations (新しい複数会社対応)
+  async createCompany(companyData: InsertCompany): Promise<Company> {
+    const [company] = await db.insert(companies).values(companyData).returning();
+    return company;
+  }
+  
+  async getCompany(id: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    return company;
+  }
+  
+  async getCompaniesByUser(userId: string): Promise<Company[]> {
+    return await db.select().from(companies).where(eq(companies.userId, userId));
+  }
+  
+  async getDefaultCompany(userId: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies)
+      .where(and(eq(companies.userId, userId), eq(companies.isDefault, 'true')));
+    return company;
+  }
+  
+  async updateCompany(id: string, companyData: Partial<InsertCompany>): Promise<Company> {
+    const [updated] = await db
+      .update(companies)
+      .set({ ...companyData, updatedAt: new Date() })
+      .where(eq(companies.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteCompany(id: string): Promise<void> {
+    await db.delete(companies).where(eq(companies.id, id));
+  }
+  
+  async setDefaultCompany(userId: string, companyId: string): Promise<void> {
+    // まず、すべての会社のデフォルトフラグをfalseに
+    await db
+      .update(companies)
+      .set({ isDefault: 'false', updatedAt: new Date() })
+      .where(eq(companies.userId, userId));
+    
+    // 指定された会社をデフォルトに
+    await db
+      .update(companies)
+      .set({ isDefault: 'true', updatedAt: new Date() })
+      .where(eq(companies.id, companyId));
+  }
+  
+  // Bank account operations (新しい複数口座対応)
+  async createBankAccount(accountData: InsertBankAccount): Promise<BankAccount> {
+    const [account] = await db.insert(bankAccounts).values(accountData).returning();
+    return account;
+  }
+  
+  async getBankAccount(id: string): Promise<BankAccount | undefined> {
+    const [account] = await db.select().from(bankAccounts).where(eq(bankAccounts.id, id));
+    return account;
+  }
+  
+  async getBankAccountsByCompany(companyId: string): Promise<BankAccount[]> {
+    return await db.select().from(bankAccounts).where(eq(bankAccounts.companyId, companyId));
+  }
+  
+  async getDefaultBankAccount(companyId: string): Promise<BankAccount | undefined> {
+    const [account] = await db.select().from(bankAccounts)
+      .where(and(eq(bankAccounts.companyId, companyId), eq(bankAccounts.isDefault, 'true')));
+    return account;
+  }
+  
+  async updateBankAccount(id: string, accountData: Partial<InsertBankAccount>): Promise<BankAccount> {
+    const [updated] = await db
+      .update(bankAccounts)
+      .set({ ...accountData, updatedAt: new Date() })
+      .where(eq(bankAccounts.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteBankAccount(id: string): Promise<void> {
+    await db.delete(bankAccounts).where(eq(bankAccounts.id, id));
+  }
+  
+  async setDefaultBankAccount(companyId: string, accountId: string): Promise<void> {
+    // まず、この会社のすべての口座のデフォルトフラグをfalseに
+    await db
+      .update(bankAccounts)
+      .set({ isDefault: 'false', updatedAt: new Date() })
+      .where(eq(bankAccounts.companyId, companyId));
+    
+    // 指定された口座をデフォルトに
+    await db
+      .update(bankAccounts)
+      .set({ isDefault: 'true', updatedAt: new Date() })
+      .where(eq(bankAccounts.id, accountId));
+  }
+  
+  // Company settings operations (レガシー - 後方互換性のため)
   async getCompanySettings(userId: string): Promise<CompanySettings | undefined> {
     const [settings] = await db.select().from(companySettings).where(eq(companySettings.userId, userId));
     return settings;
