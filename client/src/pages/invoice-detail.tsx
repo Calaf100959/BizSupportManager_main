@@ -12,13 +12,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Separator } from "@/components/ui/separator";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FileSpreadsheet, ArrowLeft, Pencil, Trash2, Send, Plus, CreditCard, Mail, CheckCircle, AlertCircle } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Pencil, Trash2, Send, Plus, CreditCard, Mail, CheckCircle, AlertCircle, Printer, Download } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { type Invoice, type InvoiceItem, type Office, type Payment, type CompanySettings } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { format } from "date-fns";
+import { InvoicePrintView } from "@/components/invoice-print-view";
+import { downloadInvoicePDF } from "@/lib/invoice-pdf";
 
 const paymentSchema = z.object({
   paymentDate: z.string().min(1, "入金日を入力してください"),
@@ -52,6 +54,7 @@ export default function InvoiceDetailPage() {
   const { toast } = useToast();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [showPrintView, setShowPrintView] = useState(false);
 
   const { data, isLoading } = useQuery<{ invoice: Invoice; items: InvoiceItem[]; office: Office }>({
     queryKey: ["/api/invoices", id],
@@ -182,6 +185,26 @@ export default function InvoiceDetailPage() {
     setPaymentDialogOpen(true);
   };
 
+  const handlePrint = () => {
+    setShowPrintView(true);
+    setTimeout(() => {
+      window.print();
+      setShowPrintView(false);
+    }, 100);
+  };
+
+  const handleDownloadPDF = () => {
+    if (data) {
+      downloadInvoicePDF({
+        invoice: data.invoice,
+        items: data.items,
+        office: data.office,
+        companySettings: companySettings || null,
+      });
+      toast({ title: "PDFをダウンロードしました" });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -229,6 +252,14 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" onClick={handlePrint} data-testid="button-print">
+            <Printer className="h-4 w-4 mr-2" />
+            印刷
+          </Button>
+          <Button variant="outline" onClick={handleDownloadPDF} data-testid="button-download-pdf">
+            <Download className="h-4 w-4 mr-2" />
+            PDF
+          </Button>
           {invoice.status === '下書き' && (
             <Button variant="outline" onClick={() => updateStatusMutation.mutate('発行済')} data-testid="button-issue">
               発行する
@@ -585,6 +616,15 @@ export default function InvoiceDetailPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {showPrintView && (
+        <InvoicePrintView
+          invoice={invoice}
+          items={items}
+          office={office}
+          companySettings={companySettings || null}
+        />
+      )}
     </div>
   );
 }
