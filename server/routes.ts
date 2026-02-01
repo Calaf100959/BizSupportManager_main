@@ -1360,6 +1360,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { items, ...invoiceData } = req.body;
       
+      // Handle empty dueDate
+      if (invoiceData.dueDate === '' || invoiceData.dueDate === undefined) {
+        invoiceData.dueDate = null;
+      }
+      
       // Create invoice
       const invoice = await storage.createInvoice({
         ...invoiceData,
@@ -1389,6 +1394,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const { items, ...invoiceData } = req.body;
+      
+      // Handle empty dueDate
+      if (invoiceData.dueDate === '' || invoiceData.dueDate === undefined) {
+        invoiceData.dueDate = null;
+      }
       
       // Update invoice
       const invoice = await storage.updateInvoice(req.params.id, {

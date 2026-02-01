@@ -151,6 +151,7 @@ export default function InvoiceFormPage() {
     const totals = calculateTotals();
     const invoiceData = {
       ...data,
+      dueDate: data.dueDate || undefined,
       items: itemsWithAmounts,
       ...totals,
     };
