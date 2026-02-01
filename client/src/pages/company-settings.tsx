@@ -12,11 +12,45 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Save, Building2, Plus, Trash2, Star, StarOff, Pencil } from "lucide-react";
+import { Save, Building2, Plus, Trash2, Star, StarOff, Pencil, Search, Loader2 } from "lucide-react";
 import { insertCompanySchema, insertBankAccountSchema, type Company, type BankAccount } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+
+// 郵便番号から住所を検索する関数（住所自動入力）
+async function searchAddressByPostalCode(postalCode: string): Promise<{ address: string } | null> {
+  const cleaned = postalCode.replace(/[-ー－]/g, "");
+  if (!/^\d{7}$/.test(cleaned)) {
+    return null;
+  }
+  try {
+    const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleaned}`);
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+      const result = data.results[0];
+      return {
+        address: `${result.address1}${result.address2}${result.address3}`,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error("Postal code search error:", error);
+    return null;
+  }
+}
+
+// デフォルト支払条件の選択肢
+const paymentTermsOptions = [
+  { value: "月末締め翌月末払い", label: "月末締め翌月末払い" },
+  { value: "月末締め翌々月末払い", label: "月末締め翌々月末払い" },
+  { value: "20日締め翌月末払い", label: "20日締め翌月末払い" },
+  { value: "15日締め翌月末払い", label: "15日締め翌月末払い" },
+  { value: "請求書発行後30日以内", label: "請求書発行後30日以内" },
+  { value: "請求書発行後14日以内", label: "請求書発行後14日以内" },
+  { value: "都度払い", label: "都度払い" },
+  { value: "前払い", label: "前払い" },
+];
 
 const companyFormSchema = insertCompanySchema.omit({ userId: true }).extend({
   invoiceRegistrationNumber: z.string().optional().refine(
@@ -37,6 +71,7 @@ export default function CompanySettingsPage() {
   const [bankAccountDialogOpen, setBankAccountDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [editingBankAccount, setEditingBankAccount] = useState<BankAccount | null>(null);
+  const [isSearchingPostalCode, setIsSearchingPostalCode] = useState(false);
 
   const { data: companies = [], isLoading: companiesLoading } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
@@ -227,6 +262,27 @@ export default function CompanySettingsPage() {
       bankAccountForm.reset();
     }
     setBankAccountDialogOpen(true);
+  };
+
+  // 郵便番号から住所を検索
+  const handlePostalCodeSearch = async () => {
+    const postalCode = companyForm.getValues("postalCode");
+    if (!postalCode) {
+      toast({ title: "郵便番号を入力してください", variant: "destructive" });
+      return;
+    }
+    setIsSearchingPostalCode(true);
+    try {
+      const result = await searchAddressByPostalCode(postalCode);
+      if (result) {
+        companyForm.setValue("address", result.address);
+        toast({ title: "住所を取得しました" });
+      } else {
+        toast({ title: "該当する住所が見つかりませんでした", variant: "destructive" });
+      }
+    } finally {
+      setIsSearchingPostalCode(false);
+    }
   };
 
   const onSubmitCompany = (data: CompanyFormData) => {
@@ -540,9 +596,26 @@ export default function CompanySettingsPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>郵便番号</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} placeholder="123-4567" />
-                      </FormControl>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} placeholder="123-4567" data-testid="input-postal-code" />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={handlePostalCodeSearch}
+                          disabled={isSearchingPostalCode}
+                          title="住所を検索"
+                          data-testid="button-search-postal-code"
+                        >
+                          {isSearchingPostalCode ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Search className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -608,9 +681,20 @@ export default function CompanySettingsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>デフォルト支払条件</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} placeholder="月末締め翌月末払い" />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-payment-terms">
+                          <SelectValue placeholder="支払条件を選択" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {paymentTermsOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
