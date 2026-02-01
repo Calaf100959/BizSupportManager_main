@@ -1,12 +1,14 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { type Invoice, type InvoiceItem, type Office, type CompanySettings } from "@shared/schema";
+import { type Invoice, type InvoiceItem, type Office, type CompanySettings, type Company, type BankAccount } from "@shared/schema";
 import { format } from "date-fns";
 
 interface InvoiceData {
   invoice: Invoice;
   items: InvoiceItem[];
   office: Office;
+  company?: Company | null;
+  bankAccounts?: BankAccount[];
   companySettings: CompanySettings | null;
 }
 
@@ -16,7 +18,7 @@ const formatCurrency = (amount: number): string => {
 
 // 印刷ビューのHTMLを生成する関数
 function createInvoiceHTML(data: InvoiceData): string {
-  const { invoice, items, office, companySettings } = data;
+  const { invoice, items, office, company, bankAccounts, companySettings } = data;
   
   const itemsHTML = items.map((item) => `
     <tr>
@@ -31,34 +33,57 @@ function createInvoiceHTML(data: InvoiceData): string {
     </tr>
   `).join("");
 
-  const companySettingsHTML = companySettings ? `
+  // 会社情報を優先、なければ従来のcompanySettingsを使用
+  const displayCompany = company || companySettings;
+  const displayBankAccounts = bankAccounts && bankAccounts.length > 0 ? bankAccounts : 
+    (companySettings?.bankName ? [{
+      id: 'legacy',
+      companyId: '',
+      accountName: '',
+      bankName: companySettings.bankName || '',
+      bankBranch: companySettings.bankBranch || '',
+      bankAccountType: companySettings.bankAccountType || '',
+      bankAccountNumber: companySettings.bankAccountNumber || '',
+      bankAccountHolder: companySettings.bankAccountHolder || '',
+      isDefault: 'false',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as BankAccount] : []);
+
+  const companySettingsHTML = displayCompany ? `
     <hr class="my-6 border-gray-300" />
     <div class="grid grid-cols-2 gap-8 text-sm">
       <div class="space-y-1">
         <div class="font-bold mb-2">請求元</div>
-        ${companySettings.companyName ? `<div class="font-bold">${companySettings.companyName}</div>` : ""}
-        ${companySettings.representativeName ? `<div>代表者: ${companySettings.representativeName}</div>` : ""}
-        ${companySettings.postalCode || companySettings.address ? `
+        ${displayCompany.companyName ? `<div class="font-bold">${displayCompany.companyName}</div>` : ""}
+        ${(displayCompany as any).representativeName ? `<div>代表者: ${(displayCompany as any).representativeName}</div>` : ""}
+        ${displayCompany.postalCode || displayCompany.address ? `
           <div>
-            ${companySettings.postalCode ? `〒${companySettings.postalCode} ` : ""}
-            ${companySettings.address || ""}
+            ${displayCompany.postalCode ? `〒${displayCompany.postalCode} ` : ""}
+            ${displayCompany.address || ""}
           </div>
         ` : ""}
-        ${companySettings.phone ? `<div>TEL: ${companySettings.phone}</div>` : ""}
-        ${companySettings.email ? `<div>Email: ${companySettings.email}</div>` : ""}
-        ${companySettings.invoiceRegistrationNumber ? `
+        ${displayCompany.phone ? `<div>TEL: ${displayCompany.phone}</div>` : ""}
+        ${displayCompany.email ? `<div>Email: ${displayCompany.email}</div>` : ""}
+        ${displayCompany.invoiceRegistrationNumber ? `
           <div class="font-bold mt-2">
-            登録番号: ${companySettings.invoiceRegistrationNumber}
+            登録番号: ${displayCompany.invoiceRegistrationNumber}
           </div>
         ` : ""}
       </div>
 
-      ${companySettings.bankName ? `
-        <div class="space-y-1">
+      ${displayBankAccounts.length > 0 ? `
+        <div class="space-y-3">
           <div class="font-bold mb-2">振込先口座</div>
-          <div>${companySettings.bankName} ${companySettings.bankBranch || ""}</div>
-          <div>${companySettings.bankAccountType || ""} ${companySettings.bankAccountNumber || ""}</div>
-          ${companySettings.bankAccountHolder ? `<div>口座名義: ${companySettings.bankAccountHolder}</div>` : ""}
+          ${displayBankAccounts.map((account, index) => `
+            ${index > 0 ? '<div class="border-t border-gray-300 my-2 pt-2"></div>' : ''}
+            <div class="space-y-1">
+              ${account.accountName ? `<div class="font-semibold">${account.accountName}</div>` : ''}
+              <div>${account.bankName} ${account.bankBranch || ""}</div>
+              <div>${account.bankAccountType || ""} ${account.bankAccountNumber || ""}</div>
+              ${account.bankAccountHolder ? `<div>口座名義: ${account.bankAccountHolder}</div>` : ""}
+            </div>
+          `).join('')}
         </div>
       ` : ""}
     </div>

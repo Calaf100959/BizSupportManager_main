@@ -963,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updatedBy: userId,
           };
         })
-        .filter(Boolean);
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
       
       if (entries.length === 0) {
         return res.status(400).json({ message: "No valid entries found in CSV" });

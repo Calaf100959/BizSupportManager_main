@@ -14,7 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileSpreadsheet, ArrowLeft, Pencil, Trash2, Send, Plus, CreditCard, Mail, CheckCircle, AlertCircle, Printer, Download } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
-import { type Invoice, type InvoiceItem, type Office, type Payment, type CompanySettings } from "@shared/schema";
+import { type Invoice, type InvoiceItem, type Office, type Payment, type CompanySettings, type Company, type BankAccount } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -56,7 +56,13 @@ export default function InvoiceDetailPage() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [showPrintView, setShowPrintView] = useState(false);
 
-  const { data, isLoading } = useQuery<{ invoice: Invoice; items: InvoiceItem[]; office: Office }>({
+  const { data, isLoading } = useQuery<{ 
+    invoice: Invoice; 
+    items: InvoiceItem[]; 
+    office: Office;
+    company?: Company | null;
+    bankAccounts?: BankAccount[];
+  }>({
     queryKey: ["/api/invoices", id],
   });
 
@@ -200,6 +206,8 @@ export default function InvoiceDetailPage() {
           invoice: data.invoice,
           items: data.items,
           office: data.office,
+          company: data.company || null,
+          bankAccounts: data.bankAccounts || [],
           companySettings: companySettings || null,
         });
         toast({ title: "PDFをダウンロードしました" });
@@ -627,6 +635,8 @@ export default function InvoiceDetailPage() {
           invoice={invoice}
           items={items}
           office={office}
+          company={data.company}
+          bankAccounts={data.bankAccounts}
           companySettings={companySettings || null}
         />
       )}

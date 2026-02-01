@@ -1,10 +1,12 @@
-import { type Invoice, type InvoiceItem, type Office, type CompanySettings } from "@shared/schema";
+import { type Invoice, type InvoiceItem, type Office, type CompanySettings, type Company, type BankAccount } from "@shared/schema";
 import { format } from "date-fns";
 
 interface InvoicePrintViewProps {
   invoice: Invoice;
   items: InvoiceItem[];
   office: Office;
+  company?: Company | null;
+  bankAccounts?: BankAccount[];
   companySettings: CompanySettings | null;
 }
 
@@ -12,7 +14,23 @@ const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(amount);
 };
 
-export function InvoicePrintView({ invoice, items, office, companySettings }: InvoicePrintViewProps) {
+export function InvoicePrintView({ invoice, items, office, company, bankAccounts, companySettings }: InvoicePrintViewProps) {
+  // 会社情報を優先、なければ従来のcompanySettingsを使用
+  const displayCompany = company || companySettings;
+  const displayBankAccounts = bankAccounts && bankAccounts.length > 0 ? bankAccounts : 
+    (companySettings?.bankName ? [{
+      id: 'legacy',
+      companyId: '',
+      accountName: '',
+      bankName: companySettings.bankName || '',
+      bankBranch: companySettings.bankBranch || '',
+      bankAccountType: companySettings.bankAccountType || '',
+      bankAccountNumber: companySettings.bankAccountNumber || '',
+      bankAccountHolder: companySettings.bankAccountHolder || '',
+      isDefault: 'false',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as BankAccount] : []);
   return (
     <div className="invoice-print-view bg-white text-black p-8 max-w-[210mm] mx-auto">
       <div className="text-center mb-8">
@@ -101,33 +119,41 @@ export function InvoicePrintView({ invoice, items, office, companySettings }: In
 
       <hr className="my-6 border-gray-300" />
 
-      {companySettings && (
+      {displayCompany && (
         <div className="grid grid-cols-2 gap-8 text-sm">
           <div className="space-y-1">
             <div className="font-bold mb-2">請求元</div>
-            {companySettings.companyName && <div className="font-bold">{companySettings.companyName}</div>}
-            {companySettings.representativeName && <div>代表者: {companySettings.representativeName}</div>}
-            {(companySettings.postalCode || companySettings.address) && (
+            {displayCompany.companyName && <div className="font-bold">{displayCompany.companyName}</div>}
+            {(displayCompany as any).representativeName && <div>代表者: {(displayCompany as any).representativeName}</div>}
+            {(displayCompany.postalCode || displayCompany.address) && (
               <div>
-                {companySettings.postalCode && `〒${companySettings.postalCode} `}
-                {companySettings.address}
+                {displayCompany.postalCode && `〒${displayCompany.postalCode} `}
+                {displayCompany.address}
               </div>
             )}
-            {companySettings.phone && <div>TEL: {companySettings.phone}</div>}
-            {companySettings.email && <div>Email: {companySettings.email}</div>}
-            {companySettings.invoiceRegistrationNumber && (
+            {displayCompany.phone && <div>TEL: {displayCompany.phone}</div>}
+            {displayCompany.email && <div>Email: {displayCompany.email}</div>}
+            {displayCompany.invoiceRegistrationNumber && (
               <div className="font-bold mt-2">
-                登録番号: {companySettings.invoiceRegistrationNumber}
+                登録番号: {displayCompany.invoiceRegistrationNumber}
               </div>
             )}
           </div>
 
-          {companySettings.bankName && (
-            <div className="space-y-1">
+          {displayBankAccounts.length > 0 && (
+            <div className="space-y-3">
               <div className="font-bold mb-2">振込先口座</div>
-              <div>{companySettings.bankName} {companySettings.bankBranch}</div>
-              <div>{companySettings.bankAccountType} {companySettings.bankAccountNumber}</div>
-              {companySettings.bankAccountHolder && <div>口座名義: {companySettings.bankAccountHolder}</div>}
+              {displayBankAccounts.map((account, index) => (
+                <div key={account.id}>
+                  {index > 0 && <div className="border-t border-gray-300 my-2 pt-2"></div>}
+                  <div className="space-y-1">
+                    {account.accountName && <div className="font-semibold">{account.accountName}</div>}
+                    <div>{account.bankName} {account.bankBranch}</div>
+                    <div>{account.bankAccountType} {account.bankAccountNumber}</div>
+                    {account.bankAccountHolder && <div>口座名義: {account.bankAccountHolder}</div>}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

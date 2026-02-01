@@ -603,8 +603,8 @@ export const invoices = pgTable("invoices", {
   // Company info (自社情報) - which company is issuing this invoice
   companyId: varchar("company_id").references(() => companies.id),
   
-  // Bank account info (振込先口座) - which bank account to use for payment
-  bankAccountId: varchar("bank_account_id").references(() => bankAccounts.id),
+  // Bank account info (振込先口座) - multiple bank accounts can be displayed
+  bankAccountIds: jsonb("bank_account_ids").$type<string[]>(), // Array of bank account IDs
   
   // Invoice dates
   issueDate: date("issue_date").notNull(), // 発行日

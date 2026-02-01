@@ -500,8 +500,12 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Office subsidy record operations
-  async createOfficeSubsidyRecord(recordData: InsertOfficeSubsidyRecord): Promise<OfficeSubsidyRecord> {
-    const [record] = await db.insert(officeSubsidyRecords).values(recordData).returning();
+  async createOfficeSubsidyRecord(recordData: Omit<InsertOfficeSubsidyRecord, 'createdBy' | 'createdAt' | 'updatedBy' | 'updatedAt'> & { createdBy: string }): Promise<OfficeSubsidyRecord> {
+    const dataWithDefaults = {
+      ...recordData,
+      updatedBy: recordData.createdBy,
+    };
+    const [record] = await db.insert(officeSubsidyRecords).values(dataWithDefaults as any).returning();
     return record;
   }
   
@@ -933,7 +937,12 @@ export class DatabaseStorage implements IStorage {
   
   // Invoice operations
   async createInvoice(invoiceData: InsertInvoice): Promise<Invoice> {
-    const [invoice] = await db.insert(invoices).values(invoiceData).returning();
+    // JSONBフィールドは配列をそのまま渡せる（Drizzleが自動変換）
+    const dataToInsert = {
+      ...invoiceData,
+      bankAccountIds: invoiceData.bankAccountIds || null,
+    };
+    const [invoice] = await db.insert(invoices).values(dataToInsert as any).returning();
     return invoice;
   }
   
@@ -942,7 +951,7 @@ export class DatabaseStorage implements IStorage {
     return invoice;
   }
   
-  async getInvoiceWithItems(id: string): Promise<{ invoice: Invoice; items: InvoiceItem[]; office: Office } | undefined> {
+  async getInvoiceWithItems(id: string): Promise<{ invoice: Invoice; items: InvoiceItem[]; office: Office; company: Company | null; bankAccounts: BankAccount[] } | undefined> {
     const invoice = await this.getInvoice(id);
     if (!invoice) return undefined;
     
@@ -950,7 +959,21 @@ export class DatabaseStorage implements IStorage {
     const office = await this.getOffice(invoice.officeId);
     if (!office) return undefined;
     
-    return { invoice, items, office };
+    // Get company info
+    let company: Company | null = null;
+    if (invoice.companyId) {
+      company = await this.getCompany(invoice.companyId) || null;
+    }
+    
+    // Get bank accounts info
+    let bankAccounts: BankAccount[] = [];
+    if (invoice.bankAccountIds && Array.isArray(invoice.bankAccountIds)) {
+      const accountPromises = invoice.bankAccountIds.map(accountId => this.getBankAccount(accountId));
+      const accounts = await Promise.all(accountPromises);
+      bankAccounts = accounts.filter((acc): acc is BankAccount => acc !== undefined);
+    }
+    
+    return { invoice, items, office, company, bankAccounts };
   }
   
   async getInvoicesByUser(userId: string): Promise<Invoice[]> {
@@ -993,9 +1016,14 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateInvoice(id: string, invoiceData: Partial<InsertInvoice>): Promise<Invoice> {
+    const dataToUpdate = {
+      ...invoiceData,
+      bankAccountIds: invoiceData.bankAccountIds !== undefined ? invoiceData.bankAccountIds : undefined,
+      updatedAt: new Date(),
+    };
     const [invoice] = await db
       .update(invoices)
-      .set({ ...invoiceData, updatedAt: new Date() })
+      .set(dataToUpdate as any)
       .where(eq(invoices.id, id))
       .returning();
     return invoice;
