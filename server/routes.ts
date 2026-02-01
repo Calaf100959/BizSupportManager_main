@@ -9,6 +9,8 @@ import {
   insertWorklogSchema,
   insertSubsidyProgramSchema,
   insertOfficeSubsidyRecordSchema,
+  insertCompanySchema,
+  insertBankAccountSchema,
   insertCompanySettingsSchema,
   insertInvoiceSchema,
   insertInvoiceItemSchema,
@@ -961,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             updatedBy: userId,
           };
         })
-        .filter(Boolean);
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
       
       if (entries.length === 0) {
         return res.status(400).json({ message: "No valid entries found in CSV" });
@@ -1287,6 +1289,196 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===== Company Settings Routes =====
+  
+  // ===== Company Routes (複数会社対応) =====
+  
+  // Get all companies for current user
+  app.get('/api/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const companies = await storage.getCompaniesByUser(userId);
+      res.json(companies);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+  
+  // Get default company for current user
+  app.get('/api/companies/default', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const company = await storage.getDefaultCompany(userId);
+      res.json(company || null);
+    } catch (error) {
+      console.error("Error fetching default company:", error);
+      res.status(500).json({ message: "Failed to fetch default company" });
+    }
+  });
+  
+  // Get specific company
+  app.get('/api/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const company = await storage.getCompany(req.params.id);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      res.json(company);
+    } catch (error) {
+      console.error("Error fetching company:", error);
+      res.status(500).json({ message: "Failed to fetch company" });
+    }
+  });
+  
+  // Create new company
+  app.post('/api/companies', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = insertCompanySchema.safeParse({ ...req.body, userId });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+      const company = await storage.createCompany(result.data);
+      res.status(201).json(company);
+    } catch (error) {
+      console.error("Error creating company:", error);
+      res.status(500).json({ message: "Failed to create company" });
+    }
+  });
+  
+  // Update company
+  app.put('/api/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const result = insertCompanySchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+      const company = await storage.updateCompany(req.params.id, result.data);
+      res.json(company);
+    } catch (error) {
+      console.error("Error updating company:", error);
+      res.status(500).json({ message: "Failed to update company" });
+    }
+  });
+  
+  // Set default company
+  app.put('/api/companies/:id/set-default', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.setDefaultCompany(userId, req.params.id);
+      res.json({ message: "Default company updated" });
+    } catch (error) {
+      console.error("Error setting default company:", error);
+      res.status(500).json({ message: "Failed to set default company" });
+    }
+  });
+  
+  // Delete company
+  app.delete('/api/companies/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteCompany(req.params.id);
+      res.json({ message: "Company deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting company:", error);
+      res.status(500).json({ message: "Failed to delete company" });
+    }
+  });
+  
+  // ===== Bank Account Routes (複数口座対応) =====
+  
+  // Get bank accounts for a company
+  app.get('/api/companies/:companyId/bank-accounts', isAuthenticated, async (req: any, res) => {
+    try {
+      const accounts = await storage.getBankAccountsByCompany(req.params.companyId);
+      res.json(accounts);
+    } catch (error) {
+      console.error("Error fetching bank accounts:", error);
+      res.status(500).json({ message: "Failed to fetch bank accounts" });
+    }
+  });
+  
+  // Get default bank account for a company
+  app.get('/api/companies/:companyId/bank-accounts/default', isAuthenticated, async (req: any, res) => {
+    try {
+      const account = await storage.getDefaultBankAccount(req.params.companyId);
+      res.json(account || null);
+    } catch (error) {
+      console.error("Error fetching default bank account:", error);
+      res.status(500).json({ message: "Failed to fetch default bank account" });
+    }
+  });
+  
+  // Get specific bank account
+  app.get('/api/bank-accounts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const account = await storage.getBankAccount(req.params.id);
+      if (!account) {
+        return res.status(404).json({ message: "Bank account not found" });
+      }
+      res.json(account);
+    } catch (error) {
+      console.error("Error fetching bank account:", error);
+      res.status(500).json({ message: "Failed to fetch bank account" });
+    }
+  });
+  
+  // Create new bank account
+  app.post('/api/bank-accounts', isAuthenticated, async (req: any, res) => {
+    try {
+      const result = insertBankAccountSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+      const account = await storage.createBankAccount(result.data);
+      res.status(201).json(account);
+    } catch (error) {
+      console.error("Error creating bank account:", error);
+      res.status(500).json({ message: "Failed to create bank account" });
+    }
+  });
+  
+  // Update bank account
+  app.put('/api/bank-accounts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const result = insertBankAccountSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid data", errors: result.error.errors });
+      }
+      const account = await storage.updateBankAccount(req.params.id, result.data);
+      res.json(account);
+    } catch (error) {
+      console.error("Error updating bank account:", error);
+      res.status(500).json({ message: "Failed to update bank account" });
+    }
+  });
+  
+  // Set default bank account
+  app.put('/api/bank-accounts/:id/set-default', isAuthenticated, async (req: any, res) => {
+    try {
+      const account = await storage.getBankAccount(req.params.id);
+      if (!account) {
+        return res.status(404).json({ message: "Bank account not found" });
+      }
+      await storage.setDefaultBankAccount(account.companyId, req.params.id);
+      res.json({ message: "Default bank account updated" });
+    } catch (error) {
+      console.error("Error setting default bank account:", error);
+      res.status(500).json({ message: "Failed to set default bank account" });
+    }
+  });
+  
+  // Delete bank account
+  app.delete('/api/bank-accounts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.deleteBankAccount(req.params.id);
+      res.json({ message: "Bank account deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting bank account:", error);
+      res.status(500).json({ message: "Failed to delete bank account" });
+    }
+  });
+  
+  // ===== Company Settings Routes (レガシー - 後方互換性のため) =====
   
   app.get('/api/company-settings', isAuthenticated, async (req: any, res) => {
     try {

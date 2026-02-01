@@ -11,7 +11,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save, FileSpreadsheet, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
-import { type Office, type Invoice, type InvoiceItem } from "@shared/schema";
+import { type Office, type Invoice, type InvoiceItem, type Company, type BankAccount } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -27,6 +27,8 @@ const itemSchema = z.object({
 
 const formSchema = z.object({
   officeId: z.string().min(1, "請求先を選択してください"),
+  companyId: z.string().optional(),
+  bankAccountIds: z.array(z.string()).optional(),
   issueDate: z.string().min(1, "発行日を入力してください"),
   dueDate: z.string().optional(),
   notes: z.string().optional(),
@@ -45,7 +47,18 @@ export default function InvoiceFormPage() {
     queryKey: ["/api/offices"],
   });
 
-  const { data: existingData, isLoading: isLoadingInvoice } = useQuery<{ invoice: Invoice; items: InvoiceItem[]; office: Office }>({
+  const { data: companies = [] } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
+  });
+
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+
+  const { data: bankAccounts = [] } = useQuery<BankAccount[]>({
+    queryKey: ["/api/companies", selectedCompanyId, "bank-accounts"],
+    enabled: !!selectedCompanyId,
+  });
+
+  const { data: existingData, isLoading: isLoadingInvoice } = useQuery<{ invoice: Invoice; items: InvoiceItem[]; office: Office; company: Company | null; bankAccounts: BankAccount[] }>({
     queryKey: ["/api/invoices", id],
     enabled: isEditing,
   });
@@ -59,6 +72,8 @@ export default function InvoiceFormPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       officeId: "",
+      companyId: "",
+      bankAccountIds: [],
       issueDate: format(new Date(), "yyyy-MM-dd"),
       dueDate: "",
       notes: "",
@@ -73,8 +88,12 @@ export default function InvoiceFormPage() {
 
   useEffect(() => {
     if (existingData) {
+      const companyId = existingData.invoice.companyId || "";
+      setSelectedCompanyId(companyId || null);
       form.reset({
         officeId: existingData.invoice.officeId,
+        companyId,
+        bankAccountIds: existingData.invoice.bankAccountIds || [],
         issueDate: existingData.invoice.issueDate,
         dueDate: existingData.invoice.dueDate || "",
         notes: existingData.invoice.notes || "",
@@ -88,6 +107,15 @@ export default function InvoiceFormPage() {
       });
     }
   }, [existingData, form]);
+
+  // デフォルト会社を選択
+  useEffect(() => {
+    if (!isEditing && companies.length > 0 && !selectedCompanyId) {
+      const defaultCompany = companies.find(c => c.isDefault === 'true') || companies[0];
+      setSelectedCompanyId(defaultCompany.id);
+      form.setValue('companyId', defaultCompany.id);
+    }
+  }, [companies, isEditing, selectedCompanyId, form]);
 
   const createMutation = useMutation({
     mutationFn: (data: FormData & { invoiceNumber: string; status: string; subtotal: number; taxAmount10: number; taxAmount8: number; totalAmount: number }) => 
@@ -223,6 +251,80 @@ export default function InvoiceFormPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="companyId"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>請求元会社</FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setSelectedCompanyId(value || null);
+                        form.setValue('bankAccountIds', []); // Reset bank accounts when company changes
+                      }} 
+                      value={field.value || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-company">
+                          <SelectValue placeholder="会社を選択（未選択の場合デフォルト会社）" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {companies.map(company => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.companyName} {company.isDefault === 'true' && '⭐'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bankAccountIds"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>振込先口座（複数選択可）</FormLabel>
+                    <div className="space-y-2">
+                      {bankAccounts.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          {selectedCompanyId ? "この会社に口座が登録されていません" : "会社を選択してください"}
+                        </p>
+                      ) : (
+                        bankAccounts.map((account) => (
+                          <div key={account.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`account-${account.id}`}
+                              checked={field.value?.includes(account.id) || false}
+                              onChange={(e) => {
+                                const currentValue = field.value || [];
+                                if (e.target.checked) {
+                                  field.onChange([...currentValue, account.id]);
+                                } else {
+                                  field.onChange(currentValue.filter(id => id !== account.id));
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            <label
+                              htmlFor={`account-${account.id}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              {account.accountName} - {account.bankName} {account.bankBranch} ({account.bankAccountType} {account.bankAccountNumber})
+                              {account.isDefault === 'true' && ' ⭐'}
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
