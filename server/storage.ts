@@ -294,26 +294,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteOffice(id: string): Promise<void> {
-    // Delete child records first to avoid FK constraint violations
-    // (none of these FK relations have ON DELETE CASCADE)
-    const officeInvoices = await db.select({ id: invoices.id }).from(invoices).where(eq(invoices.officeId, id));
-    for (const inv of officeInvoices) {
-      await db.delete(payments).where(eq(payments.invoiceId, inv.id));
-      await db.delete(invoiceItems).where(eq(invoiceItems.invoiceId, inv.id));
-    }
-    await db.delete(invoices).where(eq(invoices.officeId, id));
-    await db.delete(officeSubsidyRecords).where(eq(officeSubsidyRecords.officeId, id));
-    const periods = await db.select({ id: financialPeriods.id }).from(financialPeriods).where(eq(financialPeriods.officeId, id));
-    for (const period of periods) {
-      await db.delete(financialBsEntries).where(eq(financialBsEntries.periodId, period.id));
-      await db.delete(financialPlEntries).where(eq(financialPlEntries.periodId, period.id));
-      await db.delete(financialCashflows).where(eq(financialCashflows.periodId, period.id));
-      await db.delete(financialMetrics).where(eq(financialMetrics.periodId, period.id));
-    }
-    await db.delete(financialPeriods).where(eq(financialPeriods.officeId, id));
-    await db.delete(kartes).where(eq(kartes.officeId, id));
-    await db.delete(persons).where(eq(persons.officeId, id));
-    await db.delete(offices).where(eq(offices.id, id));
+    // Wrap in a transaction to guarantee atomicity — if any step fails,
+    // all deletes are rolled back and the office remains intact.
+    await db.transaction(async (tx) => {
+      // Delete child records first to avoid FK constraint violations
+      // (none of these FK relations have ON DELETE CASCADE)
+      const officeInvoices = await tx.select({ id: invoices.id }).from(invoices).where(eq(invoices.officeId, id));
+      for (const inv of officeInvoices) {
+        await tx.delete(payments).where(eq(payments.invoiceId, inv.id));
+        await tx.delete(invoiceItems).where(eq(invoiceItems.invoiceId, inv.id));
+      }
+      await tx.delete(invoices).where(eq(invoices.officeId, id));
+      await tx.delete(officeSubsidyRecords).where(eq(officeSubsidyRecords.officeId, id));
+      const periods = await tx.select({ id: financialPeriods.id }).from(financialPeriods).where(eq(financialPeriods.officeId, id));
+      for (const period of periods) {
+        await tx.delete(financialBsEntries).where(eq(financialBsEntries.periodId, period.id));
+        await tx.delete(financialPlEntries).where(eq(financialPlEntries.periodId, period.id));
+        await tx.delete(financialCashflows).where(eq(financialCashflows.periodId, period.id));
+        await tx.delete(financialMetrics).where(eq(financialMetrics.periodId, period.id));
+      }
+      await tx.delete(financialPeriods).where(eq(financialPeriods.officeId, id));
+      await tx.delete(kartes).where(eq(kartes.officeId, id));
+      await tx.delete(persons).where(eq(persons.officeId, id));
+      await tx.delete(offices).where(eq(offices.id, id));
+    });
   }
 
   async searchOffices(query: { 
