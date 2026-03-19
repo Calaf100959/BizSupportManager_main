@@ -305,7 +305,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Industry classification: major + middle code suggestions
-      const searchText = [metaDesc, bodyText.slice(0, 5000)].join(' ');
+      // Also include domain tokens (hostname path segments and sub-parts) in search text
+      const domainTokens = (() => {
+        try {
+          const { hostname, pathname } = new URL(targetUrl);
+          // Split on dots and hyphens/underscores, take alphanumeric parts of length 3+
+          const parts = [...hostname.split('.'), ...pathname.split(/[/-_]+/)]
+            .map(p => p.replace(/[^a-zA-Z0-9\u3000-\u9fff]/g, ''))
+            .filter(p => p.length >= 3);
+          return parts.join(' ');
+        } catch { return ''; }
+      })();
+      const searchText = [metaDesc, bodyText.slice(0, 5000), domainTokens].join(' ');
 
       // Keywords mapped to [majorCode, middleCode] with weight
       type KwEntry = { major: string; middle: string; keywords: string[] };

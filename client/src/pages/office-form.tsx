@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
+import type { Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,7 +86,7 @@ export default function OfficeFormPage() {
       let filled = 0;
       Object.entries(fieldMap).forEach(([srcKey, formKey]) => {
         if (data[srcKey]) {
-          form.setValue(formKey as any, data[srcKey]);
+          form.setValue(formKey as Path<FormData>, data[srcKey]);
           filled++;
         }
       });
@@ -406,7 +407,7 @@ export default function OfficeFormPage() {
                       <div key={num} className="flex gap-2 items-start">
                         <FormField
                           control={form.control}
-                          name={`phone${num}` as any}
+                          name={`phone${num}` as Path<FormData>}
                           render={({ field }) => (
                             <FormItem className="flex-1">
                               <FormLabel className="text-xs">電話番号{num}</FormLabel>
@@ -425,7 +426,7 @@ export default function OfficeFormPage() {
                         />
                         <FormField
                           control={form.control}
-                          name={`phone${num}Note` as any}
+                          name={`phone${num}Note` as Path<FormData>}
                           render={({ field }) => (
                             <FormItem className="w-32">
                               <FormLabel className="text-xs">備考</FormLabel>
@@ -499,9 +500,9 @@ export default function OfficeFormPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                form.setValue("industryCategoryMajor" as any, s.majorCode);
-                                form.setValue("industryCategoryMiddle" as any, s.middleCode);
-                                form.setValue("industryCategoryMinor" as any, "");
+                                form.setValue("industryCategoryMajor", s.majorCode);
+                                form.setValue("industryCategoryMiddle", s.middleCode);
+                                form.setValue("industryCategoryMinor", "");
                                 setSuggestedCodes([]);
                               }}
                               data-testid={`button-apply-suggestion-${i}`}
@@ -524,8 +525,8 @@ export default function OfficeFormPage() {
                           <Select
                             onValueChange={(v) => {
                               field.onChange(v);
-                              form.setValue("industryCategoryMiddle" as any, "");
-                              form.setValue("industryCategoryMinor" as any, "");
+                              form.setValue("industryCategoryMiddle", "");
+                              form.setValue("industryCategoryMinor", "");
                             }}
                             value={field.value || ""}
                           >
@@ -550,7 +551,7 @@ export default function OfficeFormPage() {
                       control={form.control}
                       name="industryCategoryMiddle"
                       render={({ field }) => {
-                        const major = form.watch("industryCategoryMajor" as any) || "";
+                        const major = form.watch("industryCategoryMajor") || "";
                         const middleOptions = major ? getMiddleByMajor(major) : [];
                         return (
                           <FormItem>
@@ -558,7 +559,7 @@ export default function OfficeFormPage() {
                             <Select
                               onValueChange={(v) => {
                                 field.onChange(v);
-                                form.setValue("industryCategoryMinor" as any, "");
+                                form.setValue("industryCategoryMinor", "");
                               }}
                               value={field.value || ""}
                               disabled={!major}
@@ -585,7 +586,7 @@ export default function OfficeFormPage() {
                       control={form.control}
                       name="industryCategoryMinor"
                       render={({ field }) => {
-                        const middle = form.watch("industryCategoryMiddle" as any) || "";
+                        const middle = form.watch("industryCategoryMiddle") || "";
                         const minorOptions = middle ? getMinorByMiddle(middle) : [];
                         return (
                           <FormItem>
