@@ -94,6 +94,7 @@ export const offices = pgTable("offices", {
   sns2: varchar("sns2"),
   sns3: varchar("sns3"),
   referral: text("referral"),
+  notes: text("notes"),
   
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),

@@ -80,6 +80,7 @@ export default function OfficeFormPage() {
         phone2: "phone2",
         fax: "fax",
         email1: "email1",
+        description: "notes",
       };
       let filled = 0;
       Object.entries(fieldMap).forEach(([srcKey, formKey]) => {
@@ -158,6 +159,7 @@ export default function OfficeFormPage() {
       sns2: "",
       sns3: "",
       referral: "",
+      notes: "",
     },
   });
 
@@ -210,6 +212,7 @@ export default function OfficeFormPage() {
         sns2: office.sns2 || "",
         sns3: office.sns3 || "",
         referral: office.referral || "",
+        notes: office.notes || "",
       });
     }
   }, [office, form]);
@@ -967,6 +970,21 @@ export default function OfficeFormPage() {
                         <FormLabel>紹介先</FormLabel>
                         <FormControl>
                           <Input {...field} value={field.value || ""} placeholder="紹介元を記入してください" data-testid="input-referral" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>備考</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} value={field.value || ""} placeholder="メモ・備考を入力してください（URL取得時にサイト概要が自動入力されます）" rows={3} data-testid="input-notes" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

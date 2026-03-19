@@ -165,23 +165,28 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "011", name: "耕種農業", middleCode: "01" },
   { code: "012", name: "畜産農業", middleCode: "01" },
   { code: "013", name: "農業サービス業（別掲を除く）", middleCode: "01" },
+  { code: "014", name: "きのこ類の栽培業", middleCode: "01" },
   // 02 林業
   { code: "021", name: "育林業", middleCode: "02" },
   { code: "022", name: "素材生産業", middleCode: "02" },
   { code: "023", name: "特用林産物生産業（きのこ類の栽培を除く）", middleCode: "02" },
   { code: "024", name: "林業サービス業", middleCode: "02" },
+  { code: "025", name: "薪炭製造業", middleCode: "02" },
   // 03 漁業
   { code: "031", name: "海面漁業", middleCode: "03" },
   { code: "032", name: "内水面漁業", middleCode: "03" },
+  { code: "033", name: "漁業サービス業", middleCode: "03" },
   // 04 水産養殖業
   { code: "041", name: "海面養殖業", middleCode: "04" },
   { code: "042", name: "内水面養殖業", middleCode: "04" },
+  { code: "043", name: "水産養殖サービス業", middleCode: "04" },
   // 05 鉱業
   { code: "051", name: "金属鉱業", middleCode: "05" },
   { code: "052", name: "石炭・亜炭鉱業", middleCode: "05" },
   { code: "053", name: "原油・天然ガス鉱業", middleCode: "05" },
   { code: "054", name: "採石業，砂・砂利・玉石採取業", middleCode: "05" },
   { code: "055", name: "窯業原料鉱業", middleCode: "05" },
+  { code: "059", name: "その他の鉱業，採石業，砂利採取業", middleCode: "05" },
   // 06 総合工事業
   { code: "061", name: "一般土木建築工事業", middleCode: "06" },
   { code: "062", name: "土木工事業（舗装工事業を除く）", middleCode: "06" },
@@ -189,6 +194,7 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "064", name: "建築工事業（木造建築工事業を除く）", middleCode: "06" },
   { code: "065", name: "木造建築工事業", middleCode: "06" },
   { code: "066", name: "建築リフォーム工事業（建築工事業を除く）", middleCode: "06" },
+  { code: "067", name: "解体工事業", middleCode: "06" },
   // 07 職別工事業
   { code: "071", name: "大工工事業", middleCode: "07" },
   { code: "072", name: "とび・土工・コンクリート工事業", middleCode: "07" },
@@ -233,6 +239,7 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "116", name: "外衣・シャツ製造業（和式を除く）", middleCode: "11" },
   { code: "117", name: "下着類製造業", middleCode: "11" },
   { code: "118", name: "和装製品・その他の衣服・繊維製品製造業", middleCode: "11" },
+  { code: "119", name: "その他の繊維工業製品製造業", middleCode: "11" },
   // 12 木材・木製品製造業
   { code: "121", name: "製材業，木製品製造業", middleCode: "12" },
   { code: "122", name: "造作材・合板・建築用組立材料製造業", middleCode: "12" },
@@ -263,6 +270,8 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "164", name: "油脂加工製品・石けん・合成洗剤・界面活性剤・塗料製造業", middleCode: "16" },
   { code: "165", name: "医薬品製造業", middleCode: "16" },
   { code: "166", name: "化粧品・歯磨・その他の化粧用調整品製造業", middleCode: "16" },
+  { code: "167", name: "農薬製造業", middleCode: "16" },
+  { code: "168", name: "火薬類製造業", middleCode: "16" },
   { code: "169", name: "その他の化学工業", middleCode: "16" },
   // 17 石油製品・石炭製品製造業
   { code: "171", name: "石油精製業", middleCode: "17" },
@@ -325,6 +334,8 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "252", name: "ポンプ・圧縮機器製造業（油圧・空圧機器を含む）", middleCode: "25" },
   { code: "253", name: "一般産業用機械・装置製造業", middleCode: "25" },
   { code: "254", name: "その他のはん用機械・同部分品・附属品製造業", middleCode: "25" },
+  { code: "255", name: "流体動力機械器具製造業", middleCode: "25" },
+  { code: "256", name: "搬送機械器具製造業", middleCode: "25" },
   // 26 生産用機械器具製造業
   { code: "261", name: "農業用機械製造業（農業用トラクタを含む）", middleCode: "26" },
   { code: "262", name: "建設機械・鉱山機械製造業", middleCode: "26" },
@@ -340,13 +351,23 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "274", name: "医療用機械器具・医療用品製造業", middleCode: "27" },
   { code: "275", name: "光学機械器具・レンズ製造業", middleCode: "27" },
   { code: "276", name: "武器製造業", middleCode: "27" },
+  { code: "277", name: "その他の業務用機械器具製造業", middleCode: "27" },
   // 28 電子部品・デバイス・電子回路製造業
   { code: "281", name: "電子デバイス製造業", middleCode: "28" },
   { code: "282", name: "電子部品製造業", middleCode: "28" },
   { code: "283", name: "記録メディア製造業", middleCode: "28" },
   { code: "284", name: "電子回路製造業", middleCode: "28" },
   { code: "285", name: "ユニット部品製造業", middleCode: "28" },
+  { code: "286", name: "半導体素子製造業（集積回路を除く）", middleCode: "28" },
+  { code: "287", name: "集積回路製造業", middleCode: "28" },
   { code: "289", name: "その他の電子部品・デバイス・電子回路製造業", middleCode: "28" },
+  // 28.5 新増設（情報通信機械）
+  // 30 情報通信機械器具製造業
+  { code: "301", name: "通信機械器具・同関連機械器具製造業", middleCode: "30" },
+  { code: "302", name: "映像・音響機械器具製造業", middleCode: "30" },
+  { code: "303", name: "電子計算機・同附属装置製造業", middleCode: "30" },
+  { code: "304", name: "ストレージ・周辺機器製造業", middleCode: "30" },
+  { code: "309", name: "その他の情報通信機械器具製造業", middleCode: "30" },
   // 29 電気機械器具製造業
   { code: "291", name: "発電用・送電用・配電用電気機械器具製造業", middleCode: "29" },
   { code: "292", name: "産業用電気機械器具製造業（車両用，船舶用を除く）", middleCode: "29" },
@@ -355,17 +376,15 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "295", name: "電池製造業", middleCode: "29" },
   { code: "296", name: "電子応用装置製造業", middleCode: "29" },
   { code: "297", name: "電気計測器製造業", middleCode: "29" },
+  { code: "298", name: "電気照明装置・電灯器具製造業", middleCode: "29" },
   { code: "299", name: "その他の電気機械器具製造業", middleCode: "29" },
-  // 30 情報通信機械器具製造業
-  { code: "301", name: "通信機械器具・同関連機械器具製造業", middleCode: "30" },
-  { code: "302", name: "映像・音響機械器具製造業", middleCode: "30" },
-  { code: "303", name: "電子計算機・同附属装置製造業", middleCode: "30" },
   // 31 輸送用機械器具製造業
   { code: "311", name: "自動車・同附属品製造業", middleCode: "31" },
   { code: "312", name: "鉄道車両・同部分品製造業", middleCode: "31" },
   { code: "313", name: "船舶製造・修理業，舶用機関製造業", middleCode: "31" },
   { code: "314", name: "航空機・同附属品製造業", middleCode: "31" },
   { code: "315", name: "産業用運搬車両・同部分品・附属品製造業", middleCode: "31" },
+  { code: "316", name: "自動二輪車・自転車・同部分品製造業", middleCode: "31" },
   { code: "319", name: "その他の輸送用機械器具製造業", middleCode: "31" },
   // 32 その他の製造業
   { code: "321", name: "貴金属・宝石製品製造業", middleCode: "32" },
@@ -379,24 +398,33 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "329", name: "他に分類されない製造業", middleCode: "32" },
   // 33-36 電気・ガス・熱供給・水道業
   { code: "331", name: "電気業", middleCode: "33" },
+  { code: "332", name: "電気業（再生可能エネルギー）", middleCode: "33" },
   { code: "341", name: "ガス業", middleCode: "34" },
+  { code: "342", name: "液化石油ガス販売業", middleCode: "34" },
   { code: "351", name: "熱供給業", middleCode: "35" },
   { code: "361", name: "上水道業", middleCode: "36" },
   { code: "362", name: "工業用水道業", middleCode: "36" },
   { code: "363", name: "下水道業", middleCode: "36" },
+  { code: "364", name: "簡易水道業", middleCode: "36" },
   // 37 通信業
   { code: "371", name: "固定電気通信業", middleCode: "37" },
   { code: "372", name: "移動電気通信業", middleCode: "37" },
   { code: "373", name: "電気通信に附帯するサービス業", middleCode: "37" },
+  { code: "374", name: "衛星通信業", middleCode: "37" },
   // 38 放送業
   { code: "381", name: "公共放送業（有線放送業を除く）", middleCode: "38" },
   { code: "382", name: "民間放送業（有線放送業を除く）", middleCode: "38" },
   { code: "383", name: "有線放送業", middleCode: "38" },
+  { code: "384", name: "ケーブルテレビ業", middleCode: "38" },
   // 39 情報サービス業
   { code: "391", name: "ソフトウェア業", middleCode: "39" },
   { code: "392", name: "情報処理・提供サービス業", middleCode: "39" },
+  { code: "393", name: "データベース・サービス業", middleCode: "39" },
+  { code: "394", name: "情報システム関連サービス業", middleCode: "39" },
   // 40 インターネット附随サービス業
   { code: "401", name: "インターネット附随サービス業", middleCode: "40" },
+  { code: "402", name: "電子商取引業", middleCode: "40" },
+  { code: "403", name: "インターネット広告業", middleCode: "40" },
   // 41 映像・音声・文字情報制作業
   { code: "411", name: "映像情報制作・配給業", middleCode: "41" },
   { code: "412", name: "音声情報制作業", middleCode: "41" },
@@ -404,32 +432,43 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "414", name: "出版業", middleCode: "41" },
   { code: "415", name: "広告制作業", middleCode: "41" },
   { code: "416", name: "映像・音声・文字情報制作に附帯するサービス業", middleCode: "41" },
+  { code: "417", name: "デジタルコンテンツ制作業", middleCode: "41" },
   // 42-49 運輸業，郵便業
   { code: "421", name: "鉄道業", middleCode: "42" },
+  { code: "422", name: "軌道業（索道業を除く）", middleCode: "42" },
+  { code: "423", name: "索道業", middleCode: "42" },
   { code: "431", name: "一般乗合旅客自動車運送業", middleCode: "43" },
   { code: "432", name: "一般乗用旅客自動車運送業", middleCode: "43" },
   { code: "433", name: "一般貸切旅客自動車運送業", middleCode: "43" },
+  { code: "434", name: "特定旅客自動車運送業", middleCode: "43" },
   { code: "439", name: "その他の道路旅客運送業", middleCode: "43" },
   { code: "441", name: "一般貨物自動車運送業", middleCode: "44" },
   { code: "442", name: "特定貨物自動車運送業", middleCode: "44" },
   { code: "443", name: "貨物軽自動車運送業", middleCode: "44" },
   { code: "444", name: "集配利用運送業（自動車によるものに限る）", middleCode: "44" },
+  { code: "445", name: "霊柩自動車運送業", middleCode: "44" },
   { code: "449", name: "その他の道路貨物運送業", middleCode: "44" },
   { code: "451", name: "外航海運業", middleCode: "45" },
   { code: "452", name: "内航海運業", middleCode: "45" },
   { code: "453", name: "船舶貸渡業（内航船舶貸渡業を除く）", middleCode: "45" },
   { code: "454", name: "水運に附帯するサービス業", middleCode: "45" },
+  { code: "459", name: "その他の水運業", middleCode: "45" },
   { code: "461", name: "航空運輸業", middleCode: "46" },
   { code: "462", name: "航空機使用業（航空運輸業を除く）", middleCode: "46" },
+  { code: "469", name: "航空運輸附帯サービス業", middleCode: "46" },
   { code: "471", name: "倉庫業（冷蔵倉庫業を除く）", middleCode: "47" },
   { code: "472", name: "冷蔵倉庫業", middleCode: "47" },
+  { code: "473", name: "危険品倉庫業", middleCode: "47" },
+  { code: "479", name: "その他の倉庫業", middleCode: "47" },
   { code: "481", name: "港湾運送業", middleCode: "48" },
   { code: "482", name: "貨物運送取扱業（集配利用運送業を除く）", middleCode: "48" },
   { code: "483", name: "運送代理業", middleCode: "48" },
   { code: "484", name: "こん包業", middleCode: "48" },
   { code: "485", name: "運輸施設提供業", middleCode: "48" },
+  { code: "486", name: "通関業", middleCode: "48" },
   { code: "489", name: "その他の運輸に附帯するサービス業", middleCode: "48" },
   { code: "491", name: "郵便業（信書便事業を含む）", middleCode: "49" },
+  { code: "492", name: "信書便事業", middleCode: "49" },
   // 50 各種商品卸売業
   { code: "501", name: "各種商品卸売業", middleCode: "50" },
   // 51 繊維・衣服等卸売業
@@ -439,6 +478,9 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   // 52 飲食料品卸売業
   { code: "521", name: "農畜産物・水産物卸売業", middleCode: "52" },
   { code: "522", name: "食料・飲料卸売業", middleCode: "52" },
+  // 52追加
+  { code: "523", name: "菓子・パン類卸売業", middleCode: "52" },
+  { code: "524", name: "飲料卸売業（別掲を除く）", middleCode: "52" },
   // 53 建築材料，鉱物・金属材料等卸売業
   { code: "531", name: "建築材料卸売業", middleCode: "53" },
   { code: "532", name: "化学製品卸売業", middleCode: "53" },
@@ -446,18 +488,29 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "534", name: "鉄鋼製品卸売業", middleCode: "53" },
   { code: "535", name: "非鉄金属卸売業", middleCode: "53" },
   { code: "536", name: "再生資源卸売業", middleCode: "53" },
+  { code: "537", name: "非金属鉱物製品卸売業（建築材料を除く）", middleCode: "53" },
   // 54 機械器具卸売業
   { code: "541", name: "産業機械器具卸売業", middleCode: "54" },
   { code: "542", name: "自動車卸売業", middleCode: "54" },
   { code: "543", name: "電気機械器具卸売業", middleCode: "54" },
   { code: "544", name: "その他の機械器具卸売業", middleCode: "54" },
+  { code: "545", name: "医療・福祉機器卸売業", middleCode: "54" },
+  { code: "546", name: "精密機械器具卸売業", middleCode: "54" },
   // 55 その他の卸売業
   { code: "551", name: "家具・建具・じゅう器等卸売業", middleCode: "55" },
   { code: "552", name: "医薬品・化粧品等卸売業", middleCode: "55" },
   { code: "553", name: "紙・紙製品卸売業", middleCode: "55" },
+  { code: "554", name: "農業用品卸売業", middleCode: "55" },
+  { code: "555", name: "スポーツ・レジャー用品卸売業", middleCode: "55" },
+  { code: "556", name: "動植物・ペット関連用品卸売業", middleCode: "55" },
+  { code: "557", name: "写真・映像機器卸売業", middleCode: "55" },
   { code: "559", name: "他に分類されない卸売業", middleCode: "55" },
   // 56 各種商品小売業
   { code: "561", name: "百貨店，総合スーパー", middleCode: "56" },
+  { code: "562", name: "コンビニエンスストア（飲食料品を中心とするもの）", middleCode: "56" },
+  { code: "563", name: "ディスカウントストア", middleCode: "56" },
+  { code: "564", name: "ドラッグストア", middleCode: "56" },
+  { code: "565", name: "ホームセンター", middleCode: "56" },
   { code: "569", name: "その他の各種商品小売業（従業者が常時50人未満のもの）", middleCode: "56" },
   // 57 織物・衣服・身の回り品小売業
   { code: "571", name: "呉服・服地・寝具小売業", middleCode: "57" },
@@ -497,21 +550,26 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   // 62 銀行業
   { code: "621", name: "中央銀行", middleCode: "62" },
   { code: "622", name: "普通銀行", middleCode: "62" },
+  { code: "623", name: "長期信用銀行", middleCode: "62" },
   // 63 協同組織金融業
   { code: "631", name: "中小企業等協同組合による金融業", middleCode: "63" },
   { code: "632", name: "農林水産金融業", middleCode: "63" },
   { code: "633", name: "その他の協同組織金融業", middleCode: "63" },
+  { code: "634", name: "信用金庫・信用組合", middleCode: "63" },
   // 64 貸金業等
   { code: "641", name: "貸金業", middleCode: "64" },
   { code: "642", name: "クレジットカード業，割賦金融業", middleCode: "64" },
   { code: "643", name: "その他の非預金信用機関", middleCode: "64" },
+  { code: "644", name: "質屋業", middleCode: "64" },
   // 65 金融商品取引業
   { code: "651", name: "金融商品取引業", middleCode: "65" },
   { code: "652", name: "商品先物取引業，商品投資顧問業", middleCode: "65" },
+  { code: "653", name: "商品取引所", middleCode: "65" },
   // 66 補助的金融業
   { code: "661", name: "補助的金融業，金融附帯業", middleCode: "66" },
   { code: "662", name: "信託業", middleCode: "66" },
   { code: "663", name: "金融商品仲介業，投資助言・代理業，投資運用業", middleCode: "66" },
+  { code: "664", name: "外国為替業", middleCode: "66" },
   // 67 保険業
   { code: "671", name: "生命保険業", middleCode: "67" },
   { code: "672", name: "損害保険業", middleCode: "67" },
@@ -521,11 +579,13 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   // 68 不動産取引業
   { code: "681", name: "建物売買業，土地売買業", middleCode: "68" },
   { code: "682", name: "不動産代理業・仲介業", middleCode: "68" },
+  { code: "683", name: "不動産競売・公売業", middleCode: "68" },
   // 69 不動産賃貸業・管理業
   { code: "691", name: "不動産賃貸業（貸家業，貸間業を除く）", middleCode: "69" },
   { code: "692", name: "貸家業，貸間業", middleCode: "69" },
   { code: "693", name: "駐車場業", middleCode: "69" },
   { code: "694", name: "不動産管理業", middleCode: "69" },
+  { code: "695", name: "マンション管理業", middleCode: "69" },
   // 70 物品賃貸業
   { code: "701", name: "各種物品賃貸業", middleCode: "70" },
   { code: "702", name: "産業用機械器具賃貸業", middleCode: "70" },
@@ -533,10 +593,12 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "704", name: "自動車賃貸業", middleCode: "70" },
   { code: "705", name: "スポーツ・娯楽用品賃貸業", middleCode: "70" },
   { code: "706", name: "映画・演劇用品賃貸業", middleCode: "70" },
+  { code: "707", name: "リース業", middleCode: "70" },
   { code: "709", name: "その他の物品賃貸業", middleCode: "70" },
   // 71 学術・開発研究機関
   { code: "711", name: "自然科学研究所", middleCode: "71" },
   { code: "712", name: "人文・社会科学研究所", middleCode: "71" },
+  { code: "713", name: "農業・林業・水産業研究機関", middleCode: "71" },
   // 72 専門サービス業
   { code: "721", name: "法律事務所，特許事務所", middleCode: "72" },
   { code: "722", name: "公証人役場，司法書士事務所，土地家屋調査士事務所", middleCode: "72" },
@@ -549,6 +611,8 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "729", name: "その他の専門サービス業", middleCode: "72" },
   // 73 広告業
   { code: "731", name: "広告業", middleCode: "73" },
+  { code: "732", name: "広告制作業", middleCode: "73" },
+  { code: "733", name: "メディアレップ・広告代理業", middleCode: "73" },
   // 74 技術サービス業
   { code: "741", name: "獣医業", middleCode: "74" },
   { code: "742", name: "土木建築サービス業", middleCode: "74" },
@@ -556,11 +620,15 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "744", name: "商品・非破壊検査業", middleCode: "74" },
   { code: "745", name: "計量証明業", middleCode: "74" },
   { code: "746", name: "写真業", middleCode: "74" },
+  { code: "747", name: "環境・土壌調査業", middleCode: "74" },
+  { code: "748", name: "建物診断・検査業", middleCode: "74" },
   { code: "749", name: "その他の技術サービス業", middleCode: "74" },
   // 75 宿泊業
   { code: "751", name: "旅館，ホテル", middleCode: "75" },
   { code: "752", name: "簡易宿所", middleCode: "75" },
   { code: "753", name: "下宿業", middleCode: "75" },
+  { code: "754", name: "リゾート施設業", middleCode: "75" },
+  { code: "755", name: "キャンプ場・宿泊施設業（別掲を除く）", middleCode: "75" },
   { code: "759", name: "その他の宿泊業", middleCode: "75" },
   // 76 飲食店
   { code: "761", name: "食堂，レストラン（専門料理店を除く）", middleCode: "76" },
@@ -570,6 +638,7 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "765", name: "酒場，ビヤホール", middleCode: "76" },
   { code: "766", name: "バー，キャバレー，ナイトクラブ", middleCode: "76" },
   { code: "767", name: "喫茶店", middleCode: "76" },
+  { code: "768", name: "カフェ・軽食サービス業（喫茶店を除く）", middleCode: "76" },
   { code: "769", name: "その他の飲食店", middleCode: "76" },
   // 77 持ち帰り・配達飲食サービス業
   { code: "771", name: "持ち帰り飲食サービス業", middleCode: "77" },
@@ -581,6 +650,8 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "784", name: "一般公衆浴場業", middleCode: "78" },
   { code: "785", name: "その他の公衆浴場業", middleCode: "78" },
   { code: "786", name: "洗濯・理容・美容・浴場業に附帯するサービス業", middleCode: "78" },
+  { code: "787", name: "エステティックサービス業・ネイルサービス業", middleCode: "78" },
+  { code: "788", name: "リラクゼーション業（別掲を除く）", middleCode: "78" },
   // 79 その他の生活関連サービス業
   { code: "791", name: "旅行業", middleCode: "79" },
   { code: "792", name: "家事サービス業", middleCode: "79" },
@@ -588,6 +659,8 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "794", name: "自転車・貴金属等修理業", middleCode: "79" },
   { code: "795", name: "葬儀業", middleCode: "79" },
   { code: "796", name: "冠婚葬祭業（葬儀業を除く）", middleCode: "79" },
+  { code: "797", name: "ランドリー・クリーニング以外の生活サービス業", middleCode: "79" },
+  { code: "798", name: "家庭用品・衣服等修理業（別掲を除く）", middleCode: "79" },
   { code: "799", name: "他に分類されない生活関連サービス業", middleCode: "79" },
   // 80 娯楽業
   { code: "801", name: "映画館", middleCode: "80" },
@@ -607,11 +680,14 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "815", name: "特別支援学校", middleCode: "81" },
   { code: "816", name: "高等教育機関", middleCode: "81" },
   { code: "817", name: "専修学校，各種学校", middleCode: "81" },
+  { code: "818", name: "認定こども園", middleCode: "81" },
   // 82 その他の教育，学習支援業
   { code: "821", name: "社会教育", middleCode: "82" },
   { code: "822", name: "職業・教育支援施設", middleCode: "82" },
   { code: "823", name: "学習塾", middleCode: "82" },
   { code: "824", name: "教養・技能教授業", middleCode: "82" },
+  { code: "825", name: "日本語教育業", middleCode: "82" },
+  { code: "826", name: "外国語学校・スクール", middleCode: "82" },
   { code: "829", name: "その他の教育，学習支援業", middleCode: "82" },
   // 83 医療業
   { code: "831", name: "病院", middleCode: "83" },
@@ -620,9 +696,11 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "834", name: "助産・看護業", middleCode: "83" },
   { code: "835", name: "療術業", middleCode: "83" },
   { code: "836", name: "医療に附帯するサービス業", middleCode: "83" },
+  { code: "837", name: "居宅医療サービス業", middleCode: "83" },
   // 84 保健衛生
   { code: "841", name: "保健所", middleCode: "84" },
   { code: "842", name: "健康相談施設", middleCode: "84" },
+  { code: "843", name: "健診・検診センター", middleCode: "84" },
   { code: "849", name: "その他の保健衛生", middleCode: "84" },
   // 85 社会保険・社会福祉・介護事業
   { code: "851", name: "社会保険事業団体", middleCode: "85" },
@@ -630,36 +708,52 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "853", name: "児童福祉事業", middleCode: "85" },
   { code: "854", name: "老人福祉・介護事業", middleCode: "85" },
   { code: "855", name: "障害者福祉事業", middleCode: "85" },
+  { code: "856", name: "保育所", middleCode: "85" },
+  { code: "857", name: "母子保護施設", middleCode: "85" },
   { code: "859", name: "その他の社会保険・社会福祉・介護事業", middleCode: "85" },
   // 86 郵便局
   { code: "861", name: "郵便局", middleCode: "86" },
+  { code: "862", name: "郵便局に附帯するサービス業", middleCode: "86" },
   // 87 協同組合
   { code: "871", name: "農林水産業協同組合（他に分類されるものを除く）", middleCode: "87" },
   { code: "872", name: "事業協同組合（他に分類されるものを除く）", middleCode: "87" },
+  { code: "873", name: "消費生活協同組合", middleCode: "87" },
   // 88 廃棄物処理業
   { code: "881", name: "一般廃棄物処理業", middleCode: "88" },
   { code: "882", name: "産業廃棄物処理業", middleCode: "88" },
+  { code: "883", name: "特別管理廃棄物処理業", middleCode: "88" },
+  { code: "884", name: "廃棄物処理業に附帯するサービス業", middleCode: "88" },
   { code: "889", name: "その他の廃棄物処理業", middleCode: "88" },
   // 89 自動車整備業
   { code: "891", name: "自動車整備業", middleCode: "89" },
+  { code: "892", name: "二輪自動車整備業", middleCode: "89" },
+  { code: "893", name: "自動車・機械整備に附帯するサービス業", middleCode: "89" },
   // 90 機械等修理業
   { code: "901", name: "機械修理業（電気機械器具を除く）", middleCode: "90" },
   { code: "902", name: "電気機械器具修理業", middleCode: "90" },
   { code: "903", name: "表具業", middleCode: "90" },
+  { code: "904", name: "光学機器・時計等修理業", middleCode: "90" },
   { code: "909", name: "その他の修理業", middleCode: "90" },
   // 91 職業紹介・労働者派遣業
   { code: "911", name: "職業紹介業", middleCode: "91" },
   { code: "912", name: "労働者派遣業", middleCode: "91" },
+  { code: "913", name: "人材コンサルタント業", middleCode: "91" },
+  { code: "914", name: "アウトソーシング業", middleCode: "91" },
   // 92 その他の事業サービス業
   { code: "921", name: "速記・ワープロ入力・複写業", middleCode: "92" },
   { code: "922", name: "建物サービス業", middleCode: "92" },
   { code: "923", name: "警備業", middleCode: "92" },
+  { code: "924", name: "調査業", middleCode: "92" },
+  { code: "925", name: "市場調査・世論調査業", middleCode: "92" },
+  { code: "926", name: "コールセンター業", middleCode: "92" },
+  { code: "927", name: "イベント企画・運営業", middleCode: "92" },
   { code: "929", name: "他に分類されない事業サービス業", middleCode: "92" },
   // 93 政治・経済・文化団体
   { code: "931", name: "経済団体", middleCode: "93" },
   { code: "932", name: "労働団体", middleCode: "93" },
   { code: "933", name: "学術・文化団体", middleCode: "93" },
   { code: "934", name: "政治団体", middleCode: "93" },
+  { code: "939", name: "その他の団体", middleCode: "93" },
   // 94 宗教
   { code: "941", name: "神道系宗教", middleCode: "94" },
   { code: "942", name: "仏教系宗教", middleCode: "94" },
@@ -669,6 +763,8 @@ export const MINOR_CATEGORIES: MinorCategory[] = [
   { code: "951", name: "集会場", middleCode: "95" },
   { code: "952", name: "と畜場", middleCode: "95" },
   { code: "953", name: "その他のサービス業（他に分類されないもの）", middleCode: "95" },
+  { code: "954", name: "ペット関連サービス業", middleCode: "95" },
+  { code: "955", name: "フォトスタジオ・写真サービス業", middleCode: "95" },
   // 96 外国公務
   { code: "961", name: "外国公務", middleCode: "96" },
   // 97 国家公務

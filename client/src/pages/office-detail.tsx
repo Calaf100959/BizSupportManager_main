@@ -329,6 +329,12 @@ export default function OfficeDetailPage() {
                 <p className="text-sm text-muted-foreground">住所</p>
                 <p className="font-medium">{office.address || "-"}</p>
               </div>
+              {office.notes && (
+                <div className="col-span-2">
+                  <p className="text-sm text-muted-foreground">備考</p>
+                  <p className="font-medium whitespace-pre-wrap">{office.notes}</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
