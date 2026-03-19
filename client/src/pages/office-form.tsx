@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Globe, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Globe, Loader2, CheckCircle2, X } from "lucide-react";
 import { insertOfficeSchema, type Office } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,8 @@ import {
   getMiddleByMajor,
   getMinorByMiddle,
 } from "@/lib/industry-classifications";
+
+type SuggestedCode = { majorCode: string; middleCode: string; confidence: number };
 
 const formSchema = insertOfficeSchema.extend({
   code: z.string()
@@ -35,6 +37,7 @@ export default function OfficeFormPage() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [suggestedCodes, setSuggestedCodes] = useState<SuggestedCode[]>([]);
 
   const { data: office, isLoading } = useQuery<Office>({
     queryKey: ["/api/offices", id],
@@ -68,7 +71,7 @@ export default function OfficeFormPage() {
 
   const scrapeMutation = useMutation({
     mutationFn: (url: string) => apiRequest("/api/offices/scrape-url", "POST", { url }),
-    onSuccess: (data: Record<string, string>) => {
+    onSuccess: (data: any) => {
       const fieldMap: Record<string, string> = {
         name: "name",
         postalCode: "postalCode",
@@ -77,7 +80,6 @@ export default function OfficeFormPage() {
         phone2: "phone2",
         fax: "fax",
         email1: "email1",
-        industryCategoryMajor: "industryCategoryMajor",
       };
       let filled = 0;
       Object.entries(fieldMap).forEach(([srcKey, formKey]) => {
@@ -86,9 +88,11 @@ export default function OfficeFormPage() {
           filled++;
         }
       });
-      if (data.industryCategoryMajor) {
-        form.setValue("industryCategoryMiddle" as any, "");
-        form.setValue("industryCategoryMinor" as any, "");
+      // Store suggested industry codes for banner display
+      if (Array.isArray(data.suggestedIndustryCodes) && data.suggestedIndustryCodes.length > 0) {
+        setSuggestedCodes(data.suggestedIndustryCodes);
+      } else {
+        setSuggestedCodes([]);
       }
       toast({
         title: filled > 0 ? `${filled}件の情報を取得しました` : "情報を取得できませんでした",
@@ -96,6 +100,7 @@ export default function OfficeFormPage() {
       });
     },
     onError: (error: any) => {
+      setSuggestedCodes([]);
       toast({
         title: "取得に失敗しました",
         description: error?.message || "URLを確認してください",
@@ -464,6 +469,48 @@ export default function OfficeFormPage() {
                 {/* 日本標準産業分類 (大分類 → 中分類 → 小分類) */}
                 <div className="md:col-span-2">
                   <p className="text-sm font-medium mb-3">日本標準産業分類（第4版）</p>
+                  {/* Suggested industry code banner */}
+                  {suggestedCodes.length > 0 && (
+                    <div className="mb-3 p-3 border rounded-md bg-muted/50 text-sm" data-testid="banner-suggested-industry">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-muted-foreground">URLから推測した業種コード</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setSuggestedCodes([])}
+                          data-testid="button-dismiss-suggestions"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {suggestedCodes.map((s, i) => {
+                          const middleOptions = getMiddleByMajor(s.majorCode);
+                          const middleName = middleOptions.find((m) => m.code === s.middleCode)?.name || "";
+                          const majorName = MAJOR_CATEGORIES.find((c) => c.code === s.majorCode)?.name || "";
+                          return (
+                            <Button
+                              key={i}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                form.setValue("industryCategoryMajor" as any, s.majorCode);
+                                form.setValue("industryCategoryMiddle" as any, s.middleCode);
+                                form.setValue("industryCategoryMinor" as any, "");
+                                setSuggestedCodes([]);
+                              }}
+                              data-testid={`button-apply-suggestion-${i}`}
+                            >
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              {s.majorCode} {majorName} &gt; {s.middleCode} {middleName}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="grid gap-4 md:grid-cols-3">
                     <FormField
                       control={form.control}

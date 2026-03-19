@@ -159,6 +159,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       targetUrl = 'https://' + targetUrl;
     }
 
+    // SSRF hardening: validate URL protocol and host
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch {
+      return res.status(400).json({ message: "URLの形式が正しくありません" });
+    }
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return res.status(400).json({ message: "http/httpsのURLのみ対応しています" });
+    }
+    const { hostname } = parsedUrl;
+    // Block localhost and common private hostnames
+    const blockedHosts = /^(localhost|local|.+\.local|.+\.internal)$/i;
+    if (blockedHosts.test(hostname)) {
+      return res.status(400).json({ message: "このURLへのアクセスは許可されていません" });
+    }
+    // Block private IP ranges using DNS resolution
+    try {
+      const dns = await import('dns/promises');
+      const addresses = await dns.resolve(hostname).catch(() => [hostname]);
+      for (const addr of addresses) {
+        if (/^(127\.|0\.0\.0\.|10\.|192\.168\.|169\.254\.|::1$|fc|fd)/.test(addr) ||
+            /^172\.(1[6-9]|2\d|3[01])\./.test(addr)) {
+          return res.status(400).json({ message: "このURLへのアクセスは許可されていません" });
+        }
+      }
+    } catch {
+      // If DNS resolution fails, continue (may be a valid external host)
+    }
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
@@ -170,6 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Accept': 'text/html,application/xhtml+xml',
           'Accept-Language': 'ja,en;q=0.9',
         },
+        redirect: 'follow',
       });
       clearTimeout(timeout);
 
@@ -180,19 +211,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const html = await response.text();
       const $ = cheerio.load(html);
 
-      const result: Record<string, string> = {};
+      const result: Record<string, string | Array<{ majorCode: string; middleCode: string; confidence: number }>> = {};
 
       // Company name from og:title, title, or h1
       const ogTitle = $('meta[property="og:title"]').attr('content');
       const h1Text = $('h1').first().text().trim();
       const titleText = $('title').text().trim();
-      result.name = ogTitle || h1Text || titleText.split(/[|｜\-–—]/)[0].trim() || "";
+      const name = (ogTitle || h1Text || titleText.split(/[|｜\-–—]/)[0].trim() || "").trim();
+      if (name) result.name = name;
+
+      // Meta description → 概要フィールド
+      const metaDesc = $('meta[name="description"]').attr('content')
+        || $('meta[property="og:description"]').attr('content')
+        || '';
+      if (metaDesc.trim()) result.description = metaDesc.trim().slice(0, 500);
 
       // Address: look for postal codes and address patterns
       const bodyText = $('body').text();
       const postalMatch = bodyText.match(/〒?\s*(\d{3}[-－]\d{4})/);
       if (postalMatch) {
-        result.postalCode = postalMatch[1].replace(/[－－]/, '-');
+        result.postalCode = postalMatch[1].replace(/[－]/g, '-');
       }
 
       // Try to find address in common selectors
@@ -213,10 +251,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (tel && !phoneNumbers.includes(tel)) phoneNumbers.push(tel);
       });
       if (phoneNumbers.length === 0) {
-        const phonePatterns = bodyText.match(/(?:TEL[：:\s]*|電話[番号]?[：:\s]*)?(0\d{1,4}[-－()\s]\d{1,4}[-－()\s]\d{4})/g);
+        const phonePatterns = bodyText.match(/0\d{1,4}[-－()\s]\d{1,4}[-－()\s]\d{4}/g);
         if (phonePatterns) {
           phonePatterns.forEach((p) => {
-            const cleaned = p.replace(/(?:TEL[：:\s]*|電話[番号]?[：:\s]*)/i, '').trim();
+            const cleaned = p.trim();
             if (!phoneNumbers.includes(cleaned)) phoneNumbers.push(cleaned);
           });
         }
@@ -231,61 +269,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Email
       const emailLinks = $('a[href^="mailto:"]');
       if (emailLinks.length > 0) {
-        result.email1 = emailLinks.first().attr('href')?.replace('mailto:', '').split('?')[0].trim() || '';
+        const email = emailLinks.first().attr('href')?.replace('mailto:', '').split('?')[0].trim() || '';
+        if (email) result.email1 = email;
       } else {
         const emailMatch = bodyText.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
         if (emailMatch) result.email1 = emailMatch[0];
       }
 
-      // Description for industry keyword matching
-      const description = [
-        $('meta[name="description"]').attr('content') || '',
-        $('meta[property="og:description"]').attr('content') || '',
-        bodyText.slice(0, 3000),
-      ].join(' ');
+      // Industry classification: major + middle code suggestions
+      const searchText = [metaDesc, bodyText.slice(0, 5000)].join(' ');
 
-      // Industry classification using keyword matching
-      const INDUSTRY_KEYWORDS: Record<string, string[]> = {
-        "A": ["農業", "林業", "農園", "農場", "牧場", "畜産"],
-        "B": ["漁業", "水産", "養殖"],
-        "C": ["鉱業", "採掘", "採石"],
-        "D": ["建設", "建築", "工事", "土木", "施工", "リフォーム", "設備工事", "電気工事", "配管"],
-        "E": ["製造", "工場", "製品", "加工", "生産", "メーカー", "製作"],
-        "F": ["電力", "ガス", "水道", "エネルギー供給"],
-        "G": ["IT", "情報システム", "ソフトウェア", "アプリ", "インターネット", "通信", "デジタル", "DX", "AI", "Web開発", "システム開発"],
-        "H": ["運輸", "輸送", "運送", "物流", "倉庫", "配送", "トラック"],
-        "I": ["卸売", "小売", "販売", "商店", "ショップ", "ストア", "スーパー", "販売店"],
-        "J": ["銀行", "金融", "保険", "証券", "投資", "クレジット", "ファイナンス"],
-        "K": ["不動産", "賃貸", "マンション", "アパート", "住宅", "土地", "物件管理"],
-        "L": ["コンサルタント", "コンサルティング", "税理士", "公認会計士", "司法書士", "社労士", "弁護士", "特許", "研究所"],
-        "M": ["ホテル", "旅館", "飲食", "レストラン", "食堂", "カフェ", "居酒屋", "料理"],
-        "N": ["美容院", "美容室", "理容", "クリーニング", "旅行代理店", "観光", "スポーツクラブ", "娯楽"],
-        "O": ["学校", "塾", "学習", "幼稚園", "大学", "専門学校", "教育"],
-        "P": ["病院", "クリニック", "診療所", "歯科", "医療", "介護", "福祉", "看護"],
-        "Q": ["農協", "協同組合", "郵便局"],
-        "R": ["人材派遣", "警備", "清掃", "修理業", "整備", "廃棄物処理"],
-        "S": ["役所", "行政", "官公庁", "公務"],
-      };
+      // Keywords mapped to [majorCode, middleCode] with weight
+      type KwEntry = { major: string; middle: string; keywords: string[] };
+      const JSIC_KEYWORDS: KwEntry[] = [
+        // A農業
+        { major: "A", middle: "01", keywords: ["農業", "農園", "農場", "耕種農業", "畜産農業"] },
+        { major: "A", middle: "02", keywords: ["林業", "製材", "育林"] },
+        // B漁業
+        { major: "B", middle: "03", keywords: ["漁業", "漁船", "水産"] },
+        { major: "B", middle: "04", keywords: ["養殖", "水産養殖"] },
+        // D建設業
+        { major: "D", middle: "06", keywords: ["総合工事", "建設会社", "ゼネコン", "建築工事業", "土木工事業", "リフォーム"] },
+        { major: "D", middle: "07", keywords: ["大工", "とび工事", "左官", "塗装工事", "内装工事", "板金工事"] },
+        { major: "D", middle: "08", keywords: ["電気工事", "管工事", "設備工事", "空調工事", "配管工事"] },
+        // E製造業
+        { major: "E", middle: "09", keywords: ["食料品製造", "食品加工", "食品メーカー", "パン製造", "菓子製造", "水産食料品"] },
+        { major: "E", middle: "10", keywords: ["飲料製造", "酒造", "ビール製造", "清涼飲料", "飼料製造"] },
+        { major: "E", middle: "11", keywords: ["繊維工業", "紡績", "織物", "ニット", "衣服製造", "繊維メーカー"] },
+        { major: "E", middle: "12", keywords: ["木材製造", "製材業", "合板", "木製品"] },
+        { major: "E", middle: "13", keywords: ["家具製造", "建具製造", "装備品製造"] },
+        { major: "E", middle: "14", keywords: ["紙製造", "パルプ", "段ボール製造"] },
+        { major: "E", middle: "15", keywords: ["印刷業", "製版", "製本", "印刷会社"] },
+        { major: "E", middle: "16", keywords: ["化学工業", "化学製品", "医薬品製造", "化粧品製造", "塗料製造"] },
+        { major: "E", middle: "17", keywords: ["石油製品", "石炭製品", "石油精製"] },
+        { major: "E", middle: "18", keywords: ["プラスチック製造", "樹脂製造", "プラ加工"] },
+        { major: "E", middle: "19", keywords: ["ゴム製品", "タイヤ製造"] },
+        { major: "E", middle: "21", keywords: ["窯業", "ガラス製造", "セメント製造", "陶磁器", "タイル製造"] },
+        { major: "E", middle: "22", keywords: ["鉄鋼業", "製鉄", "製鋼"] },
+        { major: "E", middle: "23", keywords: ["非鉄金属", "電線製造", "アルミ加工", "銅加工"] },
+        { major: "E", middle: "24", keywords: ["金属製品製造", "板金加工", "メッキ", "ボルト製造", "金属加工"] },
+        { major: "E", middle: "25", keywords: ["はん用機械", "ポンプ製造", "ボイラ製造", "圧縮機"] },
+        { major: "E", middle: "26", keywords: ["生産用機械", "工作機械", "農業機械", "建設機械製造"] },
+        { major: "E", middle: "27", keywords: ["業務用機械", "医療機器", "光学機器", "計測機器"] },
+        { major: "E", middle: "28", keywords: ["電子部品", "半導体", "電子デバイス", "電子回路"] },
+        { major: "E", middle: "29", keywords: ["電気機械器具", "発電機製造", "変圧器", "電池製造"] },
+        { major: "E", middle: "30", keywords: ["情報通信機械", "コンピュータ製造", "通信機器製造"] },
+        { major: "E", middle: "31", keywords: ["自動車製造", "輸送機械", "船舶製造", "鉄道車両", "航空機製造"] },
+        { major: "E", middle: "32", keywords: ["玩具製造", "楽器製造", "時計製造", "貴金属製造", "その他製造"] },
+        // F電気・ガス
+        { major: "F", middle: "33", keywords: ["電力会社", "発電", "送電", "配電"] },
+        { major: "F", middle: "34", keywords: ["ガス会社", "都市ガス", "ガス供給"] },
+        { major: "F", middle: "36", keywords: ["水道", "上水道", "下水道"] },
+        // G情報通信
+        { major: "G", middle: "39", keywords: ["ソフトウェア開発", "システム開発", "情報サービス", "ITサービス", "DX", "AI開発", "受託開発"] },
+        { major: "G", middle: "40", keywords: ["インターネットサービス", "Webサービス", "EC", "eコマース", "オンラインサービス"] },
+        { major: "G", middle: "37", keywords: ["通信会社", "電話会社", "携帯通信", "固定電話"] },
+        { major: "G", middle: "38", keywords: ["放送局", "テレビ", "ラジオ", "有線放送"] },
+        { major: "G", middle: "41", keywords: ["映像制作", "動画制作", "音声制作", "出版社", "新聞社"] },
+        // H運輸
+        { major: "H", middle: "44", keywords: ["運送業", "貨物運送", "トラック", "引越", "配送業"] },
+        { major: "H", middle: "43", keywords: ["バス会社", "タクシー", "旅客運送"] },
+        { major: "H", middle: "47", keywords: ["倉庫業", "物流センター", "冷蔵倉庫"] },
+        { major: "H", middle: "48", keywords: ["物流会社", "港湾運送", "こん包", "フォワーダー", "通関"] },
+        // I卸売・小売
+        { major: "I", middle: "52", keywords: ["食料品卸売", "飲食料品卸売", "農産物卸"] },
+        { major: "I", middle: "53", keywords: ["建材卸売", "鉄鋼卸売", "金属卸売", "化学品卸売"] },
+        { major: "I", middle: "54", keywords: ["機械卸売", "自動車卸売", "電気機器卸売"] },
+        { major: "I", middle: "55", keywords: ["医薬品卸", "紙卸", "その他卸売"] },
+        { major: "I", middle: "58", keywords: ["スーパー", "食料品小売", "食品スーパー"] },
+        { major: "I", middle: "59", keywords: ["自動車販売", "電気機器小売", "家電量販"] },
+        { major: "I", middle: "61", keywords: ["通信販売", "ネット販売", "オンラインショップ", "EC事業"] },
+        // J金融・保険
+        { major: "J", middle: "62", keywords: ["銀行", "普通銀行"] },
+        { major: "J", middle: "64", keywords: ["貸金業", "クレジット", "ファイナンス", "消費者金融"] },
+        { major: "J", middle: "67", keywords: ["保険会社", "損害保険", "生命保険", "共済"] },
+        // K不動産
+        { major: "K", middle: "68", keywords: ["不動産会社", "不動産売買", "不動産仲介", "土地売買"] },
+        { major: "K", middle: "69", keywords: ["賃貸管理", "不動産管理", "マンション管理", "貸家業", "駐車場"] },
+        { major: "K", middle: "70", keywords: ["物品賃貸", "リース", "レンタル"] },
+        // L学術・専門
+        { major: "L", middle: "72", keywords: ["税理士", "公認会計士", "弁護士", "司法書士", "社労士", "行政書士", "中小企業診断士", "コンサルタント", "コンサルティング", "経営支援"] },
+        { major: "L", middle: "73", keywords: ["広告代理店", "広告会社", "PR会社", "マーケティング"] },
+        { major: "L", middle: "74", keywords: ["設計事務所", "建築設計", "土木設計", "測量", "機械設計", "写真スタジオ"] },
+        { major: "L", middle: "71", keywords: ["研究所", "研究機関", "R&D", "研究開発"] },
+        // M宿泊・飲食
+        { major: "M", middle: "75", keywords: ["ホテル", "旅館", "民宿", "宿泊施設", "ゲストハウス"] },
+        { major: "M", middle: "76", keywords: ["レストラン", "食堂", "居酒屋", "カフェ", "喫茶店", "料理店", "焼肉", "寿司"] },
+        { major: "M", middle: "77", keywords: ["テイクアウト", "デリバリー", "宅配", "弁当屋"] },
+        // N生活関連
+        { major: "N", middle: "78", keywords: ["美容院", "美容室", "理容院", "クリーニング店", "銭湯", "浴場"] },
+        { major: "N", middle: "79", keywords: ["旅行代理店", "冠婚葬祭", "葬儀", "ブライダル", "旅行業"] },
+        { major: "N", middle: "80", keywords: ["娯楽施設", "ゲームセンター", "スポーツクラブ", "フィットネス", "映画館", "ゴルフ場", "ボウリング"] },
+        // O教育
+        { major: "O", middle: "81", keywords: ["学校法人", "幼稚園", "小学校", "中学校", "高校", "大学", "専門学校"] },
+        { major: "O", middle: "82", keywords: ["学習塾", "予備校", "スクール", "カルチャーセンター", "塾"] },
+        // P医療・福祉
+        { major: "P", middle: "83", keywords: ["病院", "クリニック", "診療所", "歯科", "眼科", "内科", "外科", "医院", "医療法人"] },
+        { major: "P", middle: "84", keywords: ["保健所", "保健センター", "健康診断"] },
+        { major: "P", middle: "85", keywords: ["介護施設", "老人ホーム", "デイサービス", "障害者支援", "グループホーム", "訪問介護"] },
+        // Q複合
+        { major: "Q", middle: "87", keywords: ["農協", "漁協", "生協", "協同組合"] },
+        // R サービス
+        { major: "R", middle: "88", keywords: ["廃棄物処理", "産廃", "ゴミ収集", "リサイクル業"] },
+        { major: "R", middle: "89", keywords: ["自動車整備", "車検", "板金塗装", "自動車修理"] },
+        { major: "R", middle: "91", keywords: ["人材派遣", "人材紹介", "採用支援", "HR", "転職"] },
+        { major: "R", middle: "92", keywords: ["ビルメンテナンス", "清掃会社", "警備会社", "受付代行", "ビルメン"] },
+      ];
 
-      let suggestedMajor = "";
-      let maxScore = 0;
-      for (const [code, keywords] of Object.entries(INDUSTRY_KEYWORDS)) {
+      // Score each entry and collect top candidates
+      const scores: Array<{ major: string; middle: string; score: number }> = [];
+      for (const entry of JSIC_KEYWORDS) {
         let score = 0;
-        for (const kw of keywords) {
-          if (description.includes(kw)) score++;
+        for (const kw of entry.keywords) {
+          if (searchText.includes(kw)) score++;
         }
-        if (score > maxScore) {
-          maxScore = score;
-          suggestedMajor = code;
+        if (score > 0) {
+          scores.push({ major: entry.major, middle: entry.middle, score });
         }
-      }
-      if (suggestedMajor) {
-        result.industryCategoryMajor = suggestedMajor;
       }
 
-      // Clean up empty fields
+      // Sort by score descending, take top 3
+      scores.sort((a, b) => b.score - a.score);
+      const topSuggestions = scores.slice(0, 3).map(({ major, middle, score }) => ({
+        majorCode: major,
+        middleCode: middle,
+        confidence: score,
+      }));
+
+      if (topSuggestions.length > 0) {
+        result.suggestedIndustryCodes = topSuggestions;
+      }
+
+      // Clean up empty string fields
       Object.keys(result).forEach((k) => {
-        if (!result[k]) delete result[k];
+        const v = result[k];
+        if (typeof v === 'string' && !v) delete result[k];
       });
 
       res.json(result);
