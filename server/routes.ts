@@ -17,6 +17,7 @@ import {
   insertPaymentSchema,
 } from "@shared/schema";
 import { sendEmail } from "./gmail";
+import * as cheerio from "cheerio";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -143,6 +144,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting office:", error);
       res.status(500).json({ message: "Failed to delete office" });
+    }
+  });
+
+  // Office URL scraping endpoint
+  app.post('/api/offices/scrape-url', isAuthenticated, async (req: any, res) => {
+    const { url } = req.body;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ message: "URLを指定してください" });
+    }
+
+    let targetUrl = url.trim();
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      targetUrl = 'https://' + targetUrl;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch(targetUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; CRM-Bot/1.0)',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'ja,en;q=0.9',
+        },
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        return res.status(400).json({ message: `サイトへのアクセスに失敗しました (HTTP ${response.status})` });
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      const result: Record<string, string> = {};
+
+      // Company name from og:title, title, or h1
+      const ogTitle = $('meta[property="og:title"]').attr('content');
+      const h1Text = $('h1').first().text().trim();
+      const titleText = $('title').text().trim();
+      result.name = ogTitle || h1Text || titleText.split(/[|｜\-–—]/)[0].trim() || "";
+
+      // Address: look for postal codes and address patterns
+      const bodyText = $('body').text();
+      const postalMatch = bodyText.match(/〒?\s*(\d{3}[-－]\d{4})/);
+      if (postalMatch) {
+        result.postalCode = postalMatch[1].replace(/[－－]/, '-');
+      }
+
+      // Try to find address in common selectors
+      const addressSelectors = ['[class*="address"]', '[id*="address"]', '[class*="addr"]', 'address'];
+      for (const sel of addressSelectors) {
+        const text = $(sel).first().text().replace(/\s+/g, ' ').trim();
+        if (text && text.length > 5 && text.length < 200) {
+          result.address = text;
+          break;
+        }
+      }
+
+      // Phone numbers: look for tel: links or phone patterns
+      const telLinks = $('a[href^="tel:"]');
+      const phoneNumbers: string[] = [];
+      telLinks.each((_, el) => {
+        const tel = $(el).attr('href')?.replace('tel:', '').trim();
+        if (tel && !phoneNumbers.includes(tel)) phoneNumbers.push(tel);
+      });
+      if (phoneNumbers.length === 0) {
+        const phonePatterns = bodyText.match(/(?:TEL[：:\s]*|電話[番号]?[：:\s]*)?(0\d{1,4}[-－()\s]\d{1,4}[-－()\s]\d{4})/g);
+        if (phonePatterns) {
+          phonePatterns.forEach((p) => {
+            const cleaned = p.replace(/(?:TEL[：:\s]*|電話[番号]?[：:\s]*)/i, '').trim();
+            if (!phoneNumbers.includes(cleaned)) phoneNumbers.push(cleaned);
+          });
+        }
+      }
+      if (phoneNumbers[0]) result.phone1 = phoneNumbers[0];
+      if (phoneNumbers[1]) result.phone2 = phoneNumbers[1];
+
+      // FAX
+      const faxMatch = bodyText.match(/FAX[：:\s]*(0\d{1,4}[-－()\s]\d{1,4}[-－()\s]\d{4})/i);
+      if (faxMatch) result.fax = faxMatch[1].trim();
+
+      // Email
+      const emailLinks = $('a[href^="mailto:"]');
+      if (emailLinks.length > 0) {
+        result.email1 = emailLinks.first().attr('href')?.replace('mailto:', '').split('?')[0].trim() || '';
+      } else {
+        const emailMatch = bodyText.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+        if (emailMatch) result.email1 = emailMatch[0];
+      }
+
+      // Description for industry keyword matching
+      const description = [
+        $('meta[name="description"]').attr('content') || '',
+        $('meta[property="og:description"]').attr('content') || '',
+        bodyText.slice(0, 3000),
+      ].join(' ');
+
+      // Industry classification using keyword matching
+      const INDUSTRY_KEYWORDS: Record<string, string[]> = {
+        "A": ["農業", "林業", "農園", "農場", "牧場", "畜産"],
+        "B": ["漁業", "水産", "養殖"],
+        "C": ["鉱業", "採掘", "採石"],
+        "D": ["建設", "建築", "工事", "土木", "施工", "リフォーム", "設備工事", "電気工事", "配管"],
+        "E": ["製造", "工場", "製品", "加工", "生産", "メーカー", "製作"],
+        "F": ["電力", "ガス", "水道", "エネルギー供給"],
+        "G": ["IT", "情報システム", "ソフトウェア", "アプリ", "インターネット", "通信", "デジタル", "DX", "AI", "Web開発", "システム開発"],
+        "H": ["運輸", "輸送", "運送", "物流", "倉庫", "配送", "トラック"],
+        "I": ["卸売", "小売", "販売", "商店", "ショップ", "ストア", "スーパー", "販売店"],
+        "J": ["銀行", "金融", "保険", "証券", "投資", "クレジット", "ファイナンス"],
+        "K": ["不動産", "賃貸", "マンション", "アパート", "住宅", "土地", "物件管理"],
+        "L": ["コンサルタント", "コンサルティング", "税理士", "公認会計士", "司法書士", "社労士", "弁護士", "特許", "研究所"],
+        "M": ["ホテル", "旅館", "飲食", "レストラン", "食堂", "カフェ", "居酒屋", "料理"],
+        "N": ["美容院", "美容室", "理容", "クリーニング", "旅行代理店", "観光", "スポーツクラブ", "娯楽"],
+        "O": ["学校", "塾", "学習", "幼稚園", "大学", "専門学校", "教育"],
+        "P": ["病院", "クリニック", "診療所", "歯科", "医療", "介護", "福祉", "看護"],
+        "Q": ["農協", "協同組合", "郵便局"],
+        "R": ["人材派遣", "警備", "清掃", "修理業", "整備", "廃棄物処理"],
+        "S": ["役所", "行政", "官公庁", "公務"],
+      };
+
+      let suggestedMajor = "";
+      let maxScore = 0;
+      for (const [code, keywords] of Object.entries(INDUSTRY_KEYWORDS)) {
+        let score = 0;
+        for (const kw of keywords) {
+          if (description.includes(kw)) score++;
+        }
+        if (score > maxScore) {
+          maxScore = score;
+          suggestedMajor = code;
+        }
+      }
+      if (suggestedMajor) {
+        result.industryCategoryMajor = suggestedMajor;
+      }
+
+      // Clean up empty fields
+      Object.keys(result).forEach((k) => {
+        if (!result[k]) delete result[k];
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        return res.status(408).json({ message: "タイムアウトしました。URLを確認してください。" });
+      }
+      console.error("Scrape error:", error);
+      res.status(500).json({ message: "情報の取得に失敗しました" });
     }
   });
 

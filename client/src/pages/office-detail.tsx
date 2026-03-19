@@ -41,6 +41,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Calendar, History, TrendingUp } from "lucide-react";
 import { type Office, type Person, type Karte, type OfficeSubsidyRecord, type SubsidyProgram, insertOfficeSubsidyRecordSchema, type InsertOfficeSubsidyRecord, type AuditLog } from "@shared/schema";
+import { getIndustryLabel } from "@/lib/industry-classifications";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -290,9 +291,13 @@ export default function OfficeDetailPage() {
                 <p className="text-sm text-muted-foreground">企業形態</p>
                 <p className="font-medium">{office.companyType || "-"}</p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">業種</p>
-                <p className="font-medium">{office.industry || "-"}</p>
+              <div className="col-span-2">
+                <p className="text-sm text-muted-foreground">業種（日本標準産業分類）</p>
+                <p className="font-medium">
+                  {office.industryCategoryMajor
+                    ? getIndustryLabel(office.industryCategoryMajor, office.industryCategoryMiddle, office.industryCategoryMinor)
+                    : office.industry || "-"}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">従業員数</p>

@@ -34,10 +34,13 @@ Preferred communication style: Simple, everyday language.
     *   **Health Snapshot:** Provides an overview of client engagement health (healthy, warning, critical) with detailed statistics and filtering.
     *   **Invoice Management:** Complete invoice creation system with Invoice制度対応 (Japanese qualified invoice system compliance), 10%/8% tax rate support, auto-numbering (INV-YYYYMM-####), payment tracking (消込) with auto-status updates, Gmail integration for sending invoices, print view with @media print CSS for A4 output, and PDF download (jsPDF). Note: Print view fully supports Japanese text; PDF uses basic fonts and is best for simple layouts.
     *   **Company Settings:** User-specific business information including invoice registration number (T+13 digits), bank account details for invoices, and default payment terms.
+    *   **Industry Classification (日本標準産業分類):** Cascading 3-level dropdown (大分類 A-T → 中分類 99 items → 小分類 ~530 items) based on 日本標準産業分類第4版. Static data embedded in `client/src/lib/industry-classifications.ts`. Displayed in office detail as breadcrumb-style label.
+    *   **URL Scraping:** `POST /api/offices/scrape-url` endpoint uses cheerio to extract company name, address, phone numbers, email, and suggested industry classification from a website URL. "URLから情報取得" button in the office form auto-fills fields.
 
 ### Database Schema
 
 *   **Core Tables:** `users`, `offices`, `persons`, `kartes`, `worklogs`, `sessions`, `company_settings`, `invoices`, `invoice_items`, `payments`.
+*   **Industry Classification:** `offices` table includes `industry_category_major` (大分類, A-T), `industry_category_middle` (中分類, 2-digit), `industry_category_minor` (小分類, 3-digit) for 日本標準産業分類第4版 support.
 *   **Schema Design:** UUID primary keys, `createdAt`/`updatedAt` timestamps, normalized data structures with foreign key relationships, flexible text fields for Japanese content, Drizzle-Zod integration for schema validation.
 
 ### Authentication & Authorization

@@ -68,6 +68,10 @@ export const offices = pgTable("offices", {
   
   // Office details
   industry: varchar("industry"),
+  // Japanese Standard Industrial Classification (日本標準産業分類 第4版)
+  industryCategoryMajor: varchar("industry_category_major"), // 大分類コード (A-T)
+  industryCategoryMiddle: varchar("industry_category_middle"), // 中分類コード (01-99)
+  industryCategoryMinor: varchar("industry_category_minor"), // 小分類コード (3桁)
   employees: integer("employees"),
   regularEmployees: integer("regular_employees"),
   companyCategory: varchar("company_category"),

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,11 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Globe, Loader2 } from "lucide-react";
 import { insertOfficeSchema, type Office } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import {
+  MAJOR_CATEGORIES,
+  getMiddleByMajor,
+  getMinorByMiddle,
+} from "@/lib/industry-classifications";
 
 const formSchema = insertOfficeSchema.extend({
   code: z.string()
@@ -61,6 +66,44 @@ export default function OfficeFormPage() {
     },
   });
 
+  const scrapeMutation = useMutation({
+    mutationFn: (url: string) => apiRequest("/api/offices/scrape-url", "POST", { url }),
+    onSuccess: (data: Record<string, string>) => {
+      const fieldMap: Record<string, string> = {
+        name: "name",
+        postalCode: "postalCode",
+        address: "address",
+        phone1: "phone1",
+        phone2: "phone2",
+        fax: "fax",
+        email1: "email1",
+        industryCategoryMajor: "industryCategoryMajor",
+      };
+      let filled = 0;
+      Object.entries(fieldMap).forEach(([srcKey, formKey]) => {
+        if (data[srcKey]) {
+          form.setValue(formKey as any, data[srcKey]);
+          filled++;
+        }
+      });
+      if (data.industryCategoryMajor) {
+        form.setValue("industryCategoryMiddle" as any, "");
+        form.setValue("industryCategoryMinor" as any, "");
+      }
+      toast({
+        title: filled > 0 ? `${filled}件の情報を取得しました` : "情報を取得できませんでした",
+        description: filled > 0 ? "内容を確認して保存してください" : "サイトの構造により情報が取得できない場合があります",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "取得に失敗しました",
+        description: error?.message || "URLを確認してください",
+        variant: "destructive",
+      });
+    },
+  });
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -85,6 +128,9 @@ export default function OfficeFormPage() {
       phone5Note: "",
       representativeMobile: "",
       industry: "",
+      industryCategoryMajor: "",
+      industryCategoryMiddle: "",
+      industryCategoryMinor: "",
       employees: undefined,
       regularEmployees: undefined,
       companyCategory: "",
@@ -134,6 +180,9 @@ export default function OfficeFormPage() {
         phone5Note: office.phone5Note || "",
         representativeMobile: office.representativeMobile || "",
         industry: office.industry || "",
+        industryCategoryMajor: office.industryCategoryMajor || "",
+        industryCategoryMiddle: office.industryCategoryMiddle || "",
+        industryCategoryMinor: office.industryCategoryMinor || "",
         employees: office.employees || undefined,
         regularEmployees: office.regularEmployees || undefined,
         companyCategory: office.companyCategory || "",
@@ -412,29 +461,110 @@ export default function OfficeFormPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="industry"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>業種</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-industry">
-                            <SelectValue placeholder="選択してください" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="manufacturing">製造業</SelectItem>
-                          <SelectItem value="retail">小売業</SelectItem>
-                          <SelectItem value="service">サービス業</SelectItem>
-                          <SelectItem value="it">情報通信業</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* 日本標準産業分類 (大分類 → 中分類 → 小分類) */}
+                <div className="md:col-span-2">
+                  <p className="text-sm font-medium mb-3">日本標準産業分類（第4版）</p>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <FormField
+                      control={form.control}
+                      name="industryCategoryMajor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>大分類</FormLabel>
+                          <Select
+                            onValueChange={(v) => {
+                              field.onChange(v);
+                              form.setValue("industryCategoryMiddle" as any, "");
+                              form.setValue("industryCategoryMinor" as any, "");
+                            }}
+                            value={field.value || ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-industry-major">
+                                <SelectValue placeholder="大分類を選択" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {MAJOR_CATEGORIES.map((cat) => (
+                                <SelectItem key={cat.code} value={cat.code}>
+                                  {cat.code} {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="industryCategoryMiddle"
+                      render={({ field }) => {
+                        const major = form.watch("industryCategoryMajor" as any) || "";
+                        const middleOptions = major ? getMiddleByMajor(major) : [];
+                        return (
+                          <FormItem>
+                            <FormLabel>中分類</FormLabel>
+                            <Select
+                              onValueChange={(v) => {
+                                field.onChange(v);
+                                form.setValue("industryCategoryMinor" as any, "");
+                              }}
+                              value={field.value || ""}
+                              disabled={!major}
+                            >
+                              <FormControl>
+                                <SelectTrigger data-testid="select-industry-middle">
+                                  <SelectValue placeholder={major ? "中分類を選択" : "大分類を先に選択"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {middleOptions.map((cat) => (
+                                  <SelectItem key={cat.code} value={cat.code}>
+                                    {cat.code} {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="industryCategoryMinor"
+                      render={({ field }) => {
+                        const middle = form.watch("industryCategoryMiddle" as any) || "";
+                        const minorOptions = middle ? getMinorByMiddle(middle) : [];
+                        return (
+                          <FormItem>
+                            <FormLabel>小分類</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value || ""}
+                              disabled={!middle}
+                            >
+                              <FormControl>
+                                <SelectTrigger data-testid="select-industry-minor">
+                                  <SelectValue placeholder={middle ? "小分類を選択" : "中分類を先に選択"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {minorOptions.map((cat) => (
+                                  <SelectItem key={cat.code} value={cat.code}>
+                                    {cat.code} {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
                 <FormField
                   control={form.control}
                   name="employees"
@@ -665,19 +795,44 @@ export default function OfficeFormPage() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} type="url" placeholder="https://example.com" data-testid="input-url" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL</FormLabel>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              value={field.value || ""}
+                              type="url"
+                              placeholder="https://example.com"
+                              data-testid="input-url"
+                              onChange={field.onChange}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={scrapeMutation.isPending || !field.value}
+                            onClick={() => scrapeMutation.mutate(field.value || "")}
+                            data-testid="button-scrape-url"
+                          >
+                            {scrapeMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Globe className="h-4 w-4" />
+                            )}
+                            <span className="ml-1">URLから情報取得</span>
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="email1"
