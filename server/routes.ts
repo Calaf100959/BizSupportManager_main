@@ -147,6 +147,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper: validate a URL for SSRF safety (protocol, hostname blocklist, DNS resolution)
+  async function assertSafeUrl(rawUrl: string): Promise<void> {
+    let parsed: URL;
+    try { parsed = new URL(rawUrl); } catch {
+      throw Object.assign(new Error("URLの形式が正しくありません"), { status: 400 });
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw Object.assign(new Error("http/httpsのURLのみ対応しています"), { status: 400 });
+    }
+    const { hostname } = parsed;
+    if (/^(localhost|local|.+\.local|.+\.internal)$/i.test(hostname)) {
+      throw Object.assign(new Error("このURLへのアクセスは許可されていません"), { status: 400 });
+    }
+    // Block literal IP forms: IPv4 private/loopback/link-local; IPv6 loopback/link-local/ULA
+    const PRIVATE_IP = /^(127\.|0\.0\.0\.|10\.|192\.168\.|169\.254\.)|^172\.(1[6-9]|2\d|3[01])\.|^(::1|::ffff:127\.|fe[89ab][0-9a-f]:|fc|fd)/i;
+    if (PRIVATE_IP.test(hostname)) {
+      throw Object.assign(new Error("このURLへのアクセスは許可されていません"), { status: 400 });
+    }
+    // DNS-resolve and check all returned addresses
+    try {
+      const dns = await import('dns/promises');
+      const addrs = await dns.resolve(hostname).catch(() => [] as string[]);
+      for (const addr of addrs) {
+        if (PRIVATE_IP.test(addr)) {
+          throw Object.assign(new Error("このURLへのアクセスは許可されていません"), { status: 400 });
+        }
+      }
+    } catch (e: any) {
+      if (e?.status) throw e; // Re-throw our own blocked errors
+      // DNS lookup failure → treat as unknown host, allow (external infra may block)
+    }
+  }
+
+  // Helper: fetch with manual per-hop redirect validation (prevents SSRF via open redirects)
+  async function safeFetch(startUrl: string, signal: AbortSignal): Promise<Response> {
+    let currentUrl = startUrl;
+    const MAX_REDIRECTS = 5;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      await assertSafeUrl(currentUrl);
+      const res = await fetch(currentUrl, {
+        signal,
+        redirect: 'manual',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; CRM-Bot/1.0)',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'ja,en;q=0.9',
+        },
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('location');
+        if (!location) return res; // No Location header, return as-is
+        currentUrl = new URL(location, currentUrl).href;
+        continue;
+      }
+      return res;
+    }
+    throw Object.assign(new Error("リダイレクトが多すぎます"), { status: 400 });
+  }
+
   // Office URL scraping endpoint
   app.post('/api/offices/scrape-url', isAuthenticated, async (req: any, res) => {
     const { url } = req.body;
@@ -159,49 +218,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       targetUrl = 'https://' + targetUrl;
     }
 
-    // SSRF hardening: validate URL protocol and host
-    let parsedUrl: URL;
+    // Initial URL validation (subsequent hops validated inside safeFetch)
     try {
-      parsedUrl = new URL(targetUrl);
-    } catch {
-      return res.status(400).json({ message: "URLの形式が正しくありません" });
-    }
-    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-      return res.status(400).json({ message: "http/httpsのURLのみ対応しています" });
-    }
-    const { hostname } = parsedUrl;
-    // Block localhost and common private hostnames
-    const blockedHosts = /^(localhost|local|.+\.local|.+\.internal)$/i;
-    if (blockedHosts.test(hostname)) {
-      return res.status(400).json({ message: "このURLへのアクセスは許可されていません" });
-    }
-    // Block private IP ranges using DNS resolution
-    try {
-      const dns = await import('dns/promises');
-      const addresses = await dns.resolve(hostname).catch(() => [hostname]);
-      for (const addr of addresses) {
-        if (/^(127\.|0\.0\.0\.|10\.|192\.168\.|169\.254\.|::1$|fc|fd)/.test(addr) ||
-            /^172\.(1[6-9]|2\d|3[01])\./.test(addr)) {
-          return res.status(400).json({ message: "このURLへのアクセスは許可されていません" });
-        }
-      }
-    } catch {
-      // If DNS resolution fails, continue (may be a valid external host)
+      await assertSafeUrl(targetUrl);
+    } catch (e: any) {
+      return res.status(e.status || 400).json({ message: e.message });
     }
 
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(targetUrl, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; CRM-Bot/1.0)',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'ja,en;q=0.9',
-        },
-        redirect: 'follow',
-      });
+      const response = await safeFetch(targetUrl, controller.signal);
       clearTimeout(timeout);
 
       if (!response.ok) {
