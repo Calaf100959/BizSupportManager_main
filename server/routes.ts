@@ -2153,13 +2153,16 @@ JSONのみを返してください。`;
       });
 
       const parsed = JSON.parse(completion.choices[0].message.content || '{}');
-      const normalizeArray = (arr: unknown, max = 5): string[] =>
-        (Array.isArray(arr) ? arr.filter((s): s is string => typeof s === 'string') : []).slice(0, max);
+      const normalizeSwotArray = (arr: unknown, field: string, min = 3, max = 5): string[] => {
+        const items = (Array.isArray(arr) ? arr.filter((s): s is string => typeof s === 'string' && s.trim().length > 0) : []).slice(0, max);
+        if (items.length < min) console.warn(`SWOT generate: '${field}' returned ${items.length} items (expected ${min}-${max})`);
+        return items;
+      };
       const swotData = {
-        strengths: normalizeArray(parsed.strengths),
-        weaknesses: normalizeArray(parsed.weaknesses),
-        opportunities: normalizeArray(parsed.opportunities),
-        threats: normalizeArray(parsed.threats),
+        strengths: normalizeSwotArray(parsed.strengths, 'strengths'),
+        weaknesses: normalizeSwotArray(parsed.weaknesses, 'weaknesses'),
+        opportunities: normalizeSwotArray(parsed.opportunities, 'opportunities'),
+        threats: normalizeSwotArray(parsed.threats, 'threats'),
       };
 
       const swot = await storage.upsertSwotAnalysis(req.params.id, swotData);
@@ -2213,13 +2216,16 @@ JSONのみを返してください。`;
       });
 
       const parsed = JSON.parse(completion.choices[0].message.content || '{}');
-      const normalizeArr = (arr: unknown, max = 4): string[] =>
-        (Array.isArray(arr) ? arr.filter((s): s is string => typeof s === 'string') : []).slice(0, max);
+      const normalizeCrossArray = (arr: unknown, field: string, min = 3, max = 4): string[] => {
+        const items = (Array.isArray(arr) ? arr.filter((s): s is string => typeof s === 'string' && s.trim().length > 0) : []).slice(0, max);
+        if (items.length < min) console.warn(`Cross-SWOT generate: '${field}' returned ${items.length} items (expected ${min}-${max})`);
+        return items;
+      };
       const crossData = {
-        soStrategies: normalizeArr(parsed.soStrategies),
-        woStrategies: normalizeArr(parsed.woStrategies),
-        stStrategies: normalizeArr(parsed.stStrategies),
-        wtStrategies: normalizeArr(parsed.wtStrategies),
+        soStrategies: normalizeCrossArray(parsed.soStrategies, 'soStrategies'),
+        woStrategies: normalizeCrossArray(parsed.woStrategies, 'woStrategies'),
+        stStrategies: normalizeCrossArray(parsed.stStrategies, 'stStrategies'),
+        wtStrategies: normalizeCrossArray(parsed.wtStrategies, 'wtStrategies'),
       };
 
       const updated = await storage.upsertSwotAnalysis(req.params.id, crossData);
