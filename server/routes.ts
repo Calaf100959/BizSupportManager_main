@@ -19,6 +19,12 @@ import {
 import { sendEmail } from "./gmail";
 import * as cheerio from "cheerio";
 import * as iconv from "iconv-lite";
+import OpenAI from "openai";
+
+const openaiClient = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -324,139 +330,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (emailMatch) result.email1 = emailMatch[0];
       }
 
-      // Industry classification: major + middle code suggestions
-      // Also include domain tokens (hostname path segments and sub-parts) in search text
-      const domainTokens = (() => {
+      // Build a clean text snapshot of the page for AI analysis (capped at 6000 chars)
+      const pageText = bodyText.replace(/\s+/g, ' ').trim().slice(0, 6000);
+
+      // Use OpenAI to extract structured data and classify industry
+      // We run this in parallel with a safe fallback if AI fails
+      const aiResult = await (async () => {
         try {
-          const { hostname, pathname } = new URL(targetUrl);
-          // Split on dots and hyphens/underscores, take alphanumeric parts of length 3+
-          const parts = [...hostname.split('.'), ...pathname.split(/[/-_]+/)]
-            .map(p => p.replace(/[^a-zA-Z0-9\u3000-\u9fff]/g, ''))
-            .filter(p => p.length >= 3);
-          return parts.join(' ');
-        } catch { return ''; }
+          const systemPrompt = `あなたは日本企業のウェブページを分析して、企業情報を抽出する専門家です。
+与えられたウェブページのテキストから以下の情報をJSON形式で返してください。
+情報が見つからない場合は該当フィールドを省略してください。
+
+返すJSONの形式：
+{
+  "name": "企業名（株式会社・有限会社等の法人格を含む正式名称）",
+  "postalCode": "郵便番号（ハイフン付き、例：123-4567）",
+  "address": "住所（都道府県から番地まで）",
+  "phone1": "電話番号1（ハイフン区切り）",
+  "phone2": "電話番号2（ハイフン区切り、あれば）",
+  "fax": "FAX番号（ハイフン区切り）",
+  "email1": "メールアドレス",
+  "description": "企業概要・事業内容（100〜300文字程度で簡潔に）",
+  "industryCategoryMajor": "日本標準産業分類の大分類コード（A〜Tの1文字）",
+  "industryCategoryMiddle": "日本標準産業分類の中分類コード（2桁数字）",
+  "industryReason": "産業分類を選んだ理由（1行）"
+}
+
+日本標準産業分類の大分類は以下の通りです：
+A=農業・林業, B=漁業, C=鉱業・採石業・砂利採取業, D=建設業,
+E=製造業, F=電気・ガス・熱供給・水道業, G=情報通信業, H=運輸業・郵便業,
+I=卸売業・小売業, J=金融業・保険業, K=不動産業・物品賃貸業,
+L=学術研究・専門・技術サービス業, M=宿泊業・飲食サービス業,
+N=生活関連サービス業・娯楽業, O=教育・学習支援業, P=医療・福祉,
+Q=複合サービス事業, R=サービス業（他に分類されないもの）,
+S=公務, T=分類不能の産業
+
+中分類は大分類に対応する2桁コードで指定してください。
+例：G=情報通信業の場合、ソフトウェア業は39、インターネット付随サービス業は40`;
+
+          const userPrompt = `URL: ${targetUrl}
+
+ページタイトル: ${result.name || ''}
+メタ説明: ${metaDesc}
+
+ページテキスト:
+${pageText}`;
+
+          const completion = await openaiClient.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+            max_tokens: 1000,
+            temperature: 0.1,
+          });
+
+          const raw = completion.choices[0]?.message?.content || '{}';
+          return JSON.parse(raw) as Record<string, string>;
+        } catch (err) {
+          console.error("OpenAI scrape analysis failed, falling back to regex:", err);
+          return null;
+        }
       })();
-      const searchText = [metaDesc, bodyText.slice(0, 5000), domainTokens].join(' ');
 
-      // Keywords mapped to [majorCode, middleCode] with weight
-      type KwEntry = { major: string; middle: string; keywords: string[] };
-      const JSIC_KEYWORDS: KwEntry[] = [
-        // A農業
-        { major: "A", middle: "01", keywords: ["農業", "農園", "農場", "耕種農業", "畜産農業"] },
-        { major: "A", middle: "02", keywords: ["林業", "製材", "育林"] },
-        // B漁業
-        { major: "B", middle: "03", keywords: ["漁業", "漁船", "水産"] },
-        { major: "B", middle: "04", keywords: ["養殖", "水産養殖"] },
-        // D建設業
-        { major: "D", middle: "06", keywords: ["総合工事", "建設会社", "ゼネコン", "建築工事業", "土木工事業", "リフォーム"] },
-        { major: "D", middle: "07", keywords: ["大工", "とび工事", "左官", "塗装工事", "内装工事", "板金工事"] },
-        { major: "D", middle: "08", keywords: ["電気工事", "管工事", "設備工事", "空調工事", "配管工事"] },
-        // E製造業
-        { major: "E", middle: "09", keywords: ["食料品製造", "食品加工", "食品メーカー", "パン製造", "菓子製造", "水産食料品"] },
-        { major: "E", middle: "10", keywords: ["飲料製造", "酒造", "ビール製造", "清涼飲料", "飼料製造"] },
-        { major: "E", middle: "11", keywords: ["繊維工業", "紡績", "織物", "ニット", "衣服製造", "繊維メーカー"] },
-        { major: "E", middle: "12", keywords: ["木材製造", "製材業", "合板", "木製品"] },
-        { major: "E", middle: "13", keywords: ["家具製造", "建具製造", "装備品製造"] },
-        { major: "E", middle: "14", keywords: ["紙製造", "パルプ", "段ボール製造"] },
-        { major: "E", middle: "15", keywords: ["印刷業", "製版", "製本", "印刷会社"] },
-        { major: "E", middle: "16", keywords: ["化学工業", "化学製品", "医薬品製造", "化粧品製造", "塗料製造"] },
-        { major: "E", middle: "17", keywords: ["石油製品", "石炭製品", "石油精製"] },
-        { major: "E", middle: "18", keywords: ["プラスチック製造", "樹脂製造", "プラ加工"] },
-        { major: "E", middle: "19", keywords: ["ゴム製品", "タイヤ製造"] },
-        { major: "E", middle: "21", keywords: ["窯業", "ガラス製造", "セメント製造", "陶磁器", "タイル製造"] },
-        { major: "E", middle: "22", keywords: ["鉄鋼業", "製鉄", "製鋼"] },
-        { major: "E", middle: "23", keywords: ["非鉄金属", "電線製造", "アルミ加工", "銅加工"] },
-        { major: "E", middle: "24", keywords: ["金属製品製造", "板金加工", "メッキ", "ボルト製造", "金属加工"] },
-        { major: "E", middle: "25", keywords: ["はん用機械", "ポンプ製造", "ボイラ製造", "圧縮機"] },
-        { major: "E", middle: "26", keywords: ["生産用機械", "工作機械", "農業機械", "建設機械製造"] },
-        { major: "E", middle: "27", keywords: ["業務用機械", "医療機器", "光学機器", "計測機器"] },
-        { major: "E", middle: "28", keywords: ["電子部品", "半導体", "電子デバイス", "電子回路"] },
-        { major: "E", middle: "29", keywords: ["電気機械器具", "発電機製造", "変圧器", "電池製造"] },
-        { major: "E", middle: "30", keywords: ["情報通信機械", "コンピュータ製造", "通信機器製造"] },
-        { major: "E", middle: "31", keywords: ["自動車製造", "輸送機械", "船舶製造", "鉄道車両", "航空機製造"] },
-        { major: "E", middle: "32", keywords: ["玩具製造", "楽器製造", "時計製造", "貴金属製造", "その他製造"] },
-        // F電気・ガス
-        { major: "F", middle: "33", keywords: ["電力会社", "発電", "送電", "配電"] },
-        { major: "F", middle: "34", keywords: ["ガス会社", "都市ガス", "ガス供給"] },
-        { major: "F", middle: "36", keywords: ["水道", "上水道", "下水道"] },
-        // G情報通信
-        { major: "G", middle: "39", keywords: ["ソフトウェア開発", "システム開発", "情報サービス", "ITサービス", "DX", "AI開発", "受託開発"] },
-        { major: "G", middle: "40", keywords: ["インターネットサービス", "Webサービス", "EC", "eコマース", "オンラインサービス"] },
-        { major: "G", middle: "37", keywords: ["通信会社", "電話会社", "携帯通信", "固定電話"] },
-        { major: "G", middle: "38", keywords: ["放送局", "テレビ", "ラジオ", "有線放送"] },
-        { major: "G", middle: "41", keywords: ["映像制作", "動画制作", "音声制作", "出版社", "新聞社"] },
-        // H運輸
-        { major: "H", middle: "44", keywords: ["運送業", "貨物運送", "トラック", "引越", "配送業"] },
-        { major: "H", middle: "43", keywords: ["バス会社", "タクシー", "旅客運送"] },
-        { major: "H", middle: "47", keywords: ["倉庫業", "物流センター", "冷蔵倉庫"] },
-        { major: "H", middle: "48", keywords: ["物流会社", "港湾運送", "こん包", "フォワーダー", "通関"] },
-        // I卸売・小売
-        { major: "I", middle: "52", keywords: ["食料品卸売", "飲食料品卸売", "農産物卸"] },
-        { major: "I", middle: "53", keywords: ["建材卸売", "鉄鋼卸売", "金属卸売", "化学品卸売"] },
-        { major: "I", middle: "54", keywords: ["機械卸売", "自動車卸売", "電気機器卸売"] },
-        { major: "I", middle: "55", keywords: ["医薬品卸", "紙卸", "その他卸売"] },
-        { major: "I", middle: "58", keywords: ["スーパー", "食料品小売", "食品スーパー"] },
-        { major: "I", middle: "59", keywords: ["自動車販売", "電気機器小売", "家電量販"] },
-        { major: "I", middle: "61", keywords: ["通信販売", "ネット販売", "オンラインショップ", "EC事業"] },
-        // J金融・保険
-        { major: "J", middle: "62", keywords: ["銀行", "普通銀行"] },
-        { major: "J", middle: "64", keywords: ["貸金業", "クレジット", "ファイナンス", "消費者金融"] },
-        { major: "J", middle: "67", keywords: ["保険会社", "損害保険", "生命保険", "共済"] },
-        // K不動産
-        { major: "K", middle: "68", keywords: ["不動産会社", "不動産売買", "不動産仲介", "土地売買"] },
-        { major: "K", middle: "69", keywords: ["賃貸管理", "不動産管理", "マンション管理", "貸家業", "駐車場"] },
-        { major: "K", middle: "70", keywords: ["物品賃貸", "リース", "レンタル"] },
-        // L学術・専門
-        { major: "L", middle: "72", keywords: ["税理士", "公認会計士", "弁護士", "司法書士", "社労士", "行政書士", "中小企業診断士", "コンサルタント", "コンサルティング", "経営支援"] },
-        { major: "L", middle: "73", keywords: ["広告代理店", "広告会社", "PR会社", "マーケティング"] },
-        { major: "L", middle: "74", keywords: ["設計事務所", "建築設計", "土木設計", "測量", "機械設計", "写真スタジオ"] },
-        { major: "L", middle: "71", keywords: ["研究所", "研究機関", "R&D", "研究開発"] },
-        // M宿泊・飲食
-        { major: "M", middle: "75", keywords: ["ホテル", "旅館", "民宿", "宿泊施設", "ゲストハウス"] },
-        { major: "M", middle: "76", keywords: ["レストラン", "食堂", "居酒屋", "カフェ", "喫茶店", "料理店", "焼肉", "寿司"] },
-        { major: "M", middle: "77", keywords: ["テイクアウト", "デリバリー", "宅配", "弁当屋"] },
-        // N生活関連
-        { major: "N", middle: "78", keywords: ["美容院", "美容室", "理容院", "クリーニング店", "銭湯", "浴場"] },
-        { major: "N", middle: "79", keywords: ["旅行代理店", "冠婚葬祭", "葬儀", "ブライダル", "旅行業"] },
-        { major: "N", middle: "80", keywords: ["娯楽施設", "ゲームセンター", "スポーツクラブ", "フィットネス", "映画館", "ゴルフ場", "ボウリング"] },
-        // O教育
-        { major: "O", middle: "81", keywords: ["学校法人", "幼稚園", "小学校", "中学校", "高校", "大学", "専門学校"] },
-        { major: "O", middle: "82", keywords: ["学習塾", "予備校", "スクール", "カルチャーセンター", "塾"] },
-        // P医療・福祉
-        { major: "P", middle: "83", keywords: ["病院", "クリニック", "診療所", "歯科", "眼科", "内科", "外科", "医院", "医療法人"] },
-        { major: "P", middle: "84", keywords: ["保健所", "保健センター", "健康診断"] },
-        { major: "P", middle: "85", keywords: ["介護施設", "老人ホーム", "デイサービス", "障害者支援", "グループホーム", "訪問介護"] },
-        // Q複合
-        { major: "Q", middle: "87", keywords: ["農協", "漁協", "生協", "協同組合"] },
-        // R サービス
-        { major: "R", middle: "88", keywords: ["廃棄物処理", "産廃", "ゴミ収集", "リサイクル業"] },
-        { major: "R", middle: "89", keywords: ["自動車整備", "車検", "板金塗装", "自動車修理"] },
-        { major: "R", middle: "91", keywords: ["人材派遣", "人材紹介", "採用支援", "HR", "転職"] },
-        { major: "R", middle: "92", keywords: ["ビルメンテナンス", "清掃会社", "警備会社", "受付代行", "ビルメン"] },
-      ];
-
-      // Score each entry and collect top candidates
-      const scores: Array<{ major: string; middle: string; score: number }> = [];
-      for (const entry of JSIC_KEYWORDS) {
-        let score = 0;
-        for (const kw of entry.keywords) {
-          if (searchText.includes(kw)) score++;
+      // Merge AI results into result (AI takes priority over regex, but don't overwrite if empty)
+      if (aiResult) {
+        const aiFields = ['name', 'postalCode', 'address', 'phone1', 'phone2', 'fax', 'email1', 'description'] as const;
+        for (const field of aiFields) {
+          const val = aiResult[field];
+          if (val && typeof val === 'string' && val.trim()) {
+            result[field] = val.trim();
+          }
         }
-        if (score > 0) {
-          scores.push({ major: entry.major, middle: entry.middle, score });
+
+        // Industry classification from AI
+        if (aiResult.industryCategoryMajor && aiResult.industryCategoryMiddle) {
+          const majorCode = String(aiResult.industryCategoryMajor).trim().toUpperCase();
+          const middleCode = String(aiResult.industryCategoryMiddle).trim().replace(/^0+/, '').padStart(2, '0');
+          if (/^[A-T]$/.test(majorCode) && /^\d{2}$/.test(middleCode)) {
+            result.suggestedIndustryCodes = [{
+              majorCode,
+              middleCode,
+              confidence: 10, // AI result gets high confidence marker
+            }];
+          }
         }
-      }
-
-      // Sort by score descending, take top 3
-      scores.sort((a, b) => b.score - a.score);
-      const topSuggestions = scores.slice(0, 3).map(({ major, middle, score }) => ({
-        majorCode: major,
-        middleCode: middle,
-        confidence: score,
-      }));
-
-      if (topSuggestions.length > 0) {
-        result.suggestedIndustryCodes = topSuggestions;
       }
 
       // Clean up empty string fields

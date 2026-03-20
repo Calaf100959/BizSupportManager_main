@@ -502,7 +502,11 @@ export default function OfficeFormPage() {
                   {suggestedCodes.length > 0 && (
                     <div className="mb-3 p-3 border rounded-md bg-muted/50 text-sm" data-testid="banner-suggested-industry">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-muted-foreground">URLから推測した業種コード</span>
+                        <span className="font-medium text-muted-foreground">
+                          {suggestedCodes.some((s) => s.confidence >= 10)
+                            ? "AIが推定した業種コード"
+                            : "URLから推測した業種コード"}
+                        </span>
                         <Button
                           type="button"
                           size="icon"
