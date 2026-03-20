@@ -689,6 +689,8 @@ export default function OfficeDetailPage() {
               </div>
             );
 
+            const emptySwot = { strengths: [], weaknesses: [], opportunities: [], threats: [], soStrategies: [], woStrategies: [], stStrategies: [], wtStrategies: [] };
+
             return (
               <div className="space-y-4">
                 {/* Action buttons */}
@@ -705,6 +707,16 @@ export default function OfficeDetailPage() {
                     )}
                     SWOT分析を生成
                   </Button>
+                  {!swot && !swotLoading && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setSwotLocal(emptySwot)}
+                      data-testid="button-create-swot-manual"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      手入力で作成
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => generateCrossSwotMutation.mutate()}
