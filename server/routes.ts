@@ -2307,6 +2307,90 @@ ${formatList(existing.threats)}
     }
   });
 
+  // POST /api/offices/:id/swot/augment-cross - AI-add items to a specific cross-SWOT cell
+  app.post('/api/offices/:id/swot/augment-cross', isAuthenticated, async (req: any, res) => {
+    const VALID_FIELDS = ['soStrategies', 'woStrategies', 'stStrategies', 'wtStrategies'] as const;
+    type CrossField = typeof VALID_FIELDS[number];
+
+    try {
+      const field = req.body?.field as string;
+      if (!VALID_FIELDS.includes(field as CrossField)) {
+        return res.status(400).json({ message: "field must be one of: soStrategies, woStrategies, stStrategies, wtStrategies" });
+      }
+
+      const office = await storage.getOffice(req.params.id);
+      if (!office) return res.status(404).json({ message: "Office not found" });
+
+      const existing = await storage.getSwotAnalysis(req.params.id);
+      if (!existing) return res.status(404).json({ message: "先にSWOT分析を作成してください" });
+
+      const formatList = (arr: unknown) =>
+        (Array.isArray(arr) ? arr : []).map((s, i) => `  ${i + 1}. ${s}`).join('\n') || '  （なし）';
+
+      const cellMeta: Record<CrossField, { label: string; axes: string }> = {
+        soStrategies: { label: '積極戦略 (SO)', axes: '強み(S)×機会(O)：強みを活かして機会を掴む戦略' },
+        woStrategies: { label: '改善戦略 (WO)', axes: '弱み(W)×機会(O)：弱みを補強して機会を捉える戦略' },
+        stStrategies: { label: '差別化戦略 (ST)', axes: '強み(S)×脅威(T)：強みを使って脅威に対抗する戦略' },
+        wtStrategies: { label: '致命傷回避 (WT)', axes: '弱み(W)×脅威(T)：弱みと脅威の複合リスクを最小化する戦略' },
+      };
+
+      const meta = cellMeta[field as CrossField];
+
+      const prompt = `あなたは中小企業経営診断の専門家です。以下のSWOT分析をもとに、「${meta.label}」セルに追加すべき新しい戦略を提案してください。
+
+【定義】${meta.axes}
+
+【事業所名】${office.name}
+
+【強み(S)】
+${formatList(existing.strengths)}
+
+【弱み(W)】
+${formatList(existing.weaknesses)}
+
+【機会(O)】
+${formatList(existing.opportunities)}
+
+【脅威(T)】
+${formatList(existing.threats)}
+
+【既存の${meta.label}】
+${formatList(existing[field as CrossField])}
+
+【指示】
+上記の既存戦略と重複しない、新しい「${meta.label}」の戦略を1〜2項目追加してください。
+定義に従い、該当する強み/弱みと機会/脅威を組み合わせた具体的な戦略を記述してください。
+1項目あたり30〜70文字、日本語で記述してください。
+
+以下のJSON形式で返してください:
+{ "items": ["新戦略1", "新戦略2"] }
+JSONのみを返してください。`;
+
+      const completion = await openaiClient.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.8,
+      });
+
+      const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+      const newItems = (Array.isArray(parsed.items) ? parsed.items : [])
+        .filter((s: unknown): s is string => typeof s === 'string' && s.trim().length > 0)
+        .slice(0, 2);
+
+      const existingItems = Array.isArray(existing[field as CrossField])
+        ? (existing[field as CrossField] as string[])
+        : [];
+      const merged = [...existingItems, ...newItems.filter((n: string) => !existingItems.some(e => e.trim() === n.trim()))];
+
+      const updated = await storage.upsertSwotAnalysis(req.params.id, { [field]: merged });
+      res.json({ swot: updated, added: newItems, field });
+    } catch (error) {
+      console.error("Error augmenting cross SWOT cell:", error);
+      res.status(500).json({ message: "クロスSWOT項目のAI追加に失敗しました" });
+    }
+  });
+
   // POST /api/offices/:id/swot/cross - AI-generate cross SWOT strategies
   app.post('/api/offices/:id/swot/cross', isAuthenticated, async (req: any, res) => {
     try {

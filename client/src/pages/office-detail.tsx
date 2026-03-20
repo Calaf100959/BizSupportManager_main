@@ -149,6 +149,25 @@ export default function OfficeDetailPage() {
     },
   });
 
+  const [augmentingCrossField, setAugmentingCrossField] = useState<string | null>(null);
+
+  const augmentCrossFieldMutation = useMutation({
+    mutationFn: (field: string) => apiRequest(`/api/offices/${officeId}/swot/augment-cross`, "POST", { field }),
+    onSuccess: (data: { swot: SwotAnalysis; added: string[]; field: string }) => {
+      queryClient.setQueryData([`/api/offices/${officeId}/swot`], data.swot);
+      setAugmentingCrossField(null);
+      if (data.added.length > 0) {
+        toast({ title: `${data.added.length}件の戦略をAIが追加しました` });
+      } else {
+        toast({ title: "新たな戦略の追加はありませんでした", description: "既存の戦略が十分に網羅されています" });
+      }
+    },
+    onError: () => {
+      setAugmentingCrossField(null);
+      toast({ title: "AIによる追加に失敗しました", variant: "destructive" });
+    },
+  });
+
   const augmentSwotMutation = useMutation({
     mutationFn: () => apiRequest(`/api/offices/${officeId}/swot/augment`, "POST"),
     onSuccess: (data: { swot: SwotAnalysis; added: Record<string, string[]>; totalAdded: number }) => {
@@ -662,47 +681,71 @@ export default function OfficeDetailPage() {
               </div>
             );
 
-            const CrossCell = ({ label, field, bgClass }: { label: string; field: keyof NonNullable<typeof swotLocal>; bgClass: string }) => (
-              <div className={`p-3 border rounded-md space-y-2 ${bgClass}`}>
-                <p className="font-semibold text-sm">{label}</p>
-                {swot ? (
-                  <div className="space-y-1">
-                    {(swot[field] as string[]).map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-1">
-                        <Input
-                          value={item}
-                          onChange={e => updateList(field, idx, e.target.value)}
-                          className="h-7 text-xs bg-background"
-                          placeholder="戦略を入力"
-                          data-testid={`cross-input-${String(field)}-${idx}`}
-                        />
+            const CrossCell = ({ label, field, bgClass }: { label: string; field: keyof NonNullable<typeof swotLocal>; bgClass: string }) => {
+              const isCellAiLoading = augmentingCrossField === String(field) && augmentCrossFieldMutation.isPending;
+              const handleAiAdd = () => {
+                setAugmentingCrossField(String(field));
+                augmentCrossFieldMutation.mutate(String(field));
+              };
+              return (
+                <div className={`p-3 border rounded-md space-y-2 ${bgClass}`}>
+                  <p className="font-semibold text-sm">{label}</p>
+                  {swot ? (
+                    <div className="space-y-1">
+                      {(swot[field] as string[]).map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-1">
+                          <Input
+                            value={item}
+                            onChange={e => updateList(field, idx, e.target.value)}
+                            className="h-7 text-xs bg-background"
+                            placeholder="戦略を入力"
+                            data-testid={`cross-input-${String(field)}-${idx}`}
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 shrink-0"
+                            onClick={() => removeItem(field, idx)}
+                            data-testid={`cross-remove-${String(field)}-${idx}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="flex gap-1 pt-1">
                         <Button
-                          size="icon"
                           variant="ghost"
-                          className="h-7 w-7 shrink-0"
-                          onClick={() => removeItem(field, idx)}
-                          data-testid={`cross-remove-${String(field)}-${idx}`}
+                          size="sm"
+                          className="h-7 text-xs flex-1"
+                          onClick={() => addItem(field)}
+                          data-testid={`cross-add-${String(field)}`}
                         >
-                          <X className="h-3 w-3" />
+                          <Plus className="h-3 w-3 mr-1" />
+                          追加
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs flex-1"
+                          onClick={handleAiAdd}
+                          disabled={isCellAiLoading || augmentCrossFieldMutation.isPending}
+                          data-testid={`cross-ai-add-${String(field)}`}
+                        >
+                          {isCellAiLoading ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3 w-3 mr-1" />
+                          )}
+                          AIで追加
                         </Button>
                       </div>
-                    ))}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs w-full"
-                      onClick={() => addItem(field)}
-                      data-testid={`cross-add-${String(field)}`}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      追加
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">-</p>
-                )}
-              </div>
-            );
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">-</p>
+                  )}
+                </div>
+              );
+            }
 
             const emptySwot = { strengths: [], weaknesses: [], opportunities: [], threats: [], soStrategies: [], woStrategies: [], stStrategies: [], wtStrategies: [] };
 
