@@ -39,6 +39,23 @@ export default function OfficeFormPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [suggestedCodes, setSuggestedCodes] = useState<SuggestedCode[]>([]);
+  const [scrapedFields, setScrapedFields] = useState<Set<string>>(new Set());
+
+  const isScraped = (fieldName: string) => scrapedFields.has(fieldName);
+  const clearScraped = (fieldName: string) => {
+    setScrapedFields(prev => {
+      if (!prev.has(fieldName)) return prev;
+      const next = new Set(prev);
+      next.delete(fieldName);
+      return next;
+    });
+  };
+  const ScrapedBadge = ({ field }: { field: string }) =>
+    isScraped(field) ? (
+      <span className="ml-1.5 inline-flex items-center text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200 rounded px-1 py-px leading-tight select-none">
+        URL取得
+      </span>
+    ) : null;
 
   const { data: office, isLoading } = useQuery<Office>({
     queryKey: ["/api/offices", id],
@@ -84,12 +101,15 @@ export default function OfficeFormPage() {
         description: "notes",
       };
       let filled = 0;
+      const newScraped = new Set<string>();
       Object.entries(fieldMap).forEach(([srcKey, formKey]) => {
         if (data[srcKey]) {
           form.setValue(formKey as Path<FormData>, data[srcKey]);
+          newScraped.add(formKey);
           filled++;
         }
       });
+      setScrapedFields(newScraped);
       // Store suggested industry codes for banner display
       if (Array.isArray(data.suggestedIndustryCodes) && data.suggestedIndustryCodes.length > 0) {
         setSuggestedCodes(data.suggestedIndustryCodes);
@@ -282,9 +302,12 @@ export default function OfficeFormPage() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>事業所名 *</FormLabel>
+                      <FormLabel>事業所名 * <ScrapedBadge field="name" /></FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="例：株式会社山田商店" data-testid="input-office-name" />
+                        <Input {...field} placeholder="例：株式会社山田商店" data-testid="input-office-name"
+                          className={isScraped('name') ? 'ring-2 ring-blue-300/60' : ''}
+                          onChange={(e) => { field.onChange(e); clearScraped('name'); }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -410,7 +433,7 @@ export default function OfficeFormPage() {
                           name={`phone${num}` as Path<FormData>}
                           render={({ field }) => (
                             <FormItem className="flex-1">
-                              <FormLabel className="text-xs">電話番号{num}</FormLabel>
+                              <FormLabel className="text-xs">電話番号{num} <ScrapedBadge field={`phone${num}`} /></FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field} 
@@ -418,6 +441,8 @@ export default function OfficeFormPage() {
                                   type="tel" 
                                   placeholder="例：03-1234-5678" 
                                   data-testid={`input-phone${num}`}
+                                  className={isScraped(`phone${num}`) ? 'ring-2 ring-blue-300/60' : ''}
+                                  onChange={(e) => { field.onChange(e); clearScraped(`phone${num}`); }}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -784,9 +809,12 @@ export default function OfficeFormPage() {
                   name="postalCode"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>郵便番号</FormLabel>
+                      <FormLabel>郵便番号 <ScrapedBadge field="postalCode" /></FormLabel>
                       <FormControl>
-                        <Input {...field} value={field.value || ""} placeholder="例：100-0001" data-testid="input-postal-code" />
+                        <Input {...field} value={field.value || ""} placeholder="例：100-0001" data-testid="input-postal-code"
+                          className={isScraped('postalCode') ? 'ring-2 ring-blue-300/60' : ''}
+                          onChange={(e) => { field.onChange(e); clearScraped('postalCode'); }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -798,9 +826,12 @@ export default function OfficeFormPage() {
                     name="address"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>事業所所在地</FormLabel>
+                        <FormLabel>事業所所在地 <ScrapedBadge field="address" /></FormLabel>
                         <FormControl>
-                          <Input {...field} value={field.value || ""} placeholder="例：東京都千代田区千代田1-1" data-testid="input-address" />
+                          <Input {...field} value={field.value || ""} placeholder="例：東京都千代田区千代田1-1" data-testid="input-address"
+                            className={isScraped('address') ? 'ring-2 ring-blue-300/60' : ''}
+                            onChange={(e) => { field.onChange(e); clearScraped('address'); }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -838,9 +869,12 @@ export default function OfficeFormPage() {
                   name="fax"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>FAX番号</FormLabel>
+                      <FormLabel>FAX番号 <ScrapedBadge field="fax" /></FormLabel>
                       <FormControl>
-                        <Input {...field} value={field.value || ""} type="tel" placeholder="例：03-1234-5679" data-testid="input-fax" />
+                        <Input {...field} value={field.value || ""} type="tel" placeholder="例：03-1234-5679" data-testid="input-fax"
+                          className={isScraped('fax') ? 'ring-2 ring-blue-300/60' : ''}
+                          onChange={(e) => { field.onChange(e); clearScraped('fax'); }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -889,9 +923,12 @@ export default function OfficeFormPage() {
                   name="email1"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>メールアドレス1</FormLabel>
+                      <FormLabel>メールアドレス1 <ScrapedBadge field="email1" /></FormLabel>
                       <FormControl>
-                        <Input {...field} value={field.value || ""} type="email" placeholder="info@example.com" data-testid="input-email1" />
+                        <Input {...field} value={field.value || ""} type="email" placeholder="info@example.com" data-testid="input-email1"
+                          className={isScraped('email1') ? 'ring-2 ring-blue-300/60' : ''}
+                          onChange={(e) => { field.onChange(e); clearScraped('email1'); }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -983,9 +1020,12 @@ export default function OfficeFormPage() {
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>備考</FormLabel>
+                        <FormLabel>備考 <ScrapedBadge field="notes" /></FormLabel>
                         <FormControl>
-                          <Textarea {...field} value={field.value || ""} placeholder="メモ・備考を入力してください（URL取得時にサイト概要が自動入力されます）" rows={3} data-testid="input-notes" />
+                          <Textarea {...field} value={field.value || ""} placeholder="メモ・備考を入力してください（URL取得時にサイト概要が自動入力されます）" rows={3} data-testid="input-notes"
+                            className={isScraped('notes') ? 'ring-2 ring-blue-300/60' : ''}
+                            onChange={(e) => { field.onChange(e); clearScraped('notes'); }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

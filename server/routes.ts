@@ -18,6 +18,7 @@ import {
 } from "@shared/schema";
 import { sendEmail } from "./gmail";
 import * as cheerio from "cheerio";
+import * as iconv from "iconv-lite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -236,7 +237,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: `サイトへのアクセスに失敗しました (HTTP ${response.status})` });
       }
 
-      const html = await response.text();
+      // Decode with correct charset (handles Shift-JIS, EUC-JP, UTF-8, etc.)
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const html = (() => {
+        // 1) Try Content-Type header for charset
+        const ct = response.headers.get('content-type') || '';
+        const ctMatch = ct.match(/charset=([^\s;]+)/i);
+        let charset = ctMatch ? ctMatch[1].trim() : '';
+
+        // 2) Fallback: sniff meta charset/http-equiv from raw bytes (treated as latin-1)
+        if (!charset) {
+          const snippet = buffer.slice(0, 2000).toString('latin1');
+          const metaCharset = snippet.match(/<meta[^>]+charset=["']?([^"';\s>]+)/i)
+            || snippet.match(/charset=["']?([^"';\s>]+)/i);
+          if (metaCharset) charset = metaCharset[1].trim();
+        }
+
+        // 3) Default to UTF-8
+        if (!charset || !iconv.encodingExists(charset)) charset = 'utf-8';
+        return iconv.decode(buffer, charset);
+      })();
       const $ = cheerio.load(html);
 
       const result: Record<string, string | Array<{ majorCode: string; middleCode: string; confidence: number }>> = {};
