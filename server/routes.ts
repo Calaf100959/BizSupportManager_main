@@ -2129,6 +2129,7 @@ ${combinedText}`;
 - 資本金: ${office.capital ? office.capital + '千円' : '不明'}
 - 所在地: ${office.address || '不明'}
 - 設立: ${office.foundedDate || '不明'}
+- ウェブサイトURL: ${office.url || '未登録'}
 ${webContent ? `\nウェブサイト内容（一部）:\n${webContent}` : ''}
 
 以下のJSON形式で回答してください。各項目は3〜5項目の文字列配列で、日本語で簡潔に記述してください（1項目あたり30〜60文字）。
