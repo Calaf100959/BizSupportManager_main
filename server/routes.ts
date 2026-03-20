@@ -233,61 +233,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-
-      const response = await safeFetch(targetUrl, controller.signal);
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        return res.status(400).json({ message: `サイトへのアクセスに失敗しました (HTTP ${response.status})` });
-      }
-
-      // Decode with correct charset (handles Shift-JIS, EUC-JP, UTF-8, etc.)
-      const buffer = Buffer.from(await response.arrayBuffer());
-      const html = (() => {
-        // 1) Try Content-Type header for charset
-        const ct = response.headers.get('content-type') || '';
+      // Helper: decode an ArrayBuffer with charset auto-detection
+      const decodeHtml = (buffer: Buffer, contentTypeHeader: string): string => {
+        const ct = contentTypeHeader || '';
         const ctMatch = ct.match(/charset=([^\s;]+)/i);
         let charset = ctMatch ? ctMatch[1].trim() : '';
-
-        // 2) Fallback: sniff meta charset/http-equiv from raw bytes (treated as latin-1)
         if (!charset) {
           const snippet = buffer.slice(0, 2000).toString('latin1');
           const metaCharset = snippet.match(/<meta[^>]+charset=["']?([^"';\s>]+)/i)
             || snippet.match(/charset=["']?([^"';\s>]+)/i);
           if (metaCharset) charset = metaCharset[1].trim();
         }
-
-        // 3) Default to UTF-8
         if (!charset || !iconv.encodingExists(charset)) charset = 'utf-8';
         return iconv.decode(buffer, charset);
-      })();
+      };
+
+      // Helper: safely fetch a page and return its decoded body text (returns '' on error)
+      const fetchPageText = async (pageUrl: string, signal: AbortSignal): Promise<string> => {
+        try {
+          const resp = await safeFetch(pageUrl, signal);
+          if (!resp.ok || !resp.headers.get('content-type')?.includes('html')) return '';
+          const buf = Buffer.from(await resp.arrayBuffer());
+          const html = decodeHtml(buf, resp.headers.get('content-type') || '');
+          const $p = cheerio.load(html);
+          // Remove non-content elements
+          $p('script,style,noscript,iframe,svg,header,footer,nav').remove();
+          return $p('body').text().replace(/\s+/g, ' ').trim();
+        } catch {
+          return '';
+        }
+      };
+
+      // ── Step 1: Fetch the top page ─────────────────────────────────────────
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+
+      const response = await safeFetch(targetUrl, controller.signal);
+
+      if (!response.ok) {
+        clearTimeout(timeout);
+        return res.status(400).json({ message: `サイトへのアクセスに失敗しました (HTTP ${response.status})` });
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const html = decodeHtml(buffer, response.headers.get('content-type') || '');
       const $ = cheerio.load(html);
 
-      const result: Record<string, string | Array<{ majorCode: string; middleCode: string; confidence: number }>> = {};
+      // ── Step 2: Extract navigation links from top page ─────────────────────
+      const origin = new URL(targetUrl).origin;
+      const NAV_SELECTORS = ['nav a', 'header a', '[class*="nav"] a', '[class*="menu"] a',
+                             '[id*="nav"] a', '[id*="menu"] a', '[role="navigation"] a'];
+      const navUrls = new Set<string>();
+      for (const sel of NAV_SELECTORS) {
+        $(sel).each((_, el) => {
+          const href = $(el).attr('href');
+          if (!href) return;
+          try {
+            const abs = new URL(href, targetUrl).href;
+            // Same origin only, HTML-like paths, no fragments, not the top page itself
+            if (abs.startsWith(origin) && !abs.includes('#') && abs !== targetUrl
+                && !abs.match(/\.(pdf|zip|png|jpg|jpeg|gif|svg|css|js|xml|json)$/i)) {
+              navUrls.add(abs);
+            }
+          } catch { /* ignore invalid hrefs */ }
+        });
+        if (navUrls.size >= 6) break; // enough candidates
+      }
 
-      // Company name from og:title, title, or h1
+      // ── Step 3: Fetch up to 5 sub-pages concurrently ──────────────────────
+      const subUrls = Array.from(navUrls).slice(0, 5);
+      const subTexts = await Promise.all(
+        subUrls.map((u) => fetchPageText(u, controller.signal))
+      );
+      clearTimeout(timeout);
+
+      // ── Step 4: Extract structured fields from the top page ───────────────
+      const result: Record<string, string | Array<{ majorCode: string; middleCode: string; minorCode?: string; confidence: number }>> = {};
+
+      // Company name
       const ogTitle = $('meta[property="og:title"]').attr('content');
       const h1Text = $('h1').first().text().trim();
       const titleText = $('title').text().trim();
       const name = (ogTitle || h1Text || titleText.split(/[|｜\-–—]/)[0].trim() || "").trim();
       if (name) result.name = name;
 
-      // Meta description → 概要フィールド
+      // Meta description
       const metaDesc = $('meta[name="description"]').attr('content')
         || $('meta[property="og:description"]').attr('content')
         || '';
       if (metaDesc.trim()) result.description = metaDesc.trim().slice(0, 500);
 
-      // Address: look for postal codes and address patterns
+      // Postal code
       const bodyText = $('body').text();
       const postalMatch = bodyText.match(/〒?\s*(\d{3}[-－]\d{4})/);
       if (postalMatch) {
         result.postalCode = postalMatch[1].replace(/[－]/g, '-');
       }
 
-      // Try to find address in common selectors
+      // Address
       const addressSelectors = ['[class*="address"]', '[id*="address"]', '[class*="addr"]', 'address'];
       for (const sel of addressSelectors) {
         const text = $(sel).first().text().replace(/\s+/g, ' ').trim();
@@ -297,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Phone numbers: look for tel: links or phone patterns
+      // Phone numbers
       const telLinks = $('a[href^="tel:"]');
       const phoneNumbers: string[] = [];
       telLinks.each((_, el) => {
@@ -330,15 +373,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (emailMatch) result.email1 = emailMatch[0];
       }
 
-      // Build a clean text snapshot of the page for AI analysis (capped at 6000 chars)
-      const pageText = bodyText.replace(/\s+/g, ' ').trim().slice(0, 6000);
+      // ── Step 5: Build combined page text for AI ────────────────────────────
+      // Top page body (non-boilerplate) + sub-pages, capped at 8000 chars total
+      $('script,style,noscript,iframe,svg,nav,footer').remove();
+      const topText = $('body').text().replace(/\s+/g, ' ').trim();
+      const allTexts = [topText, ...subTexts.filter(Boolean)];
+      const combinedText = allTexts.join('\n---\n').slice(0, 8000);
 
-      // Use OpenAI to extract structured data and classify industry
-      // We run this in parallel with a safe fallback if AI fails
+      // ── Step 6: OpenAI analysis ────────────────────────────────────────────
       const aiResult = await (async () => {
         try {
           const systemPrompt = `あなたは日本企業のウェブページを分析して、企業情報を抽出する専門家です。
-与えられたウェブページのテキストから以下の情報をJSON形式で返してください。
+複数のページから取得したテキストを総合的に分析し、以下の情報をJSON形式で返してください。
 情報が見つからない場合は該当フィールドを省略してください。
 
 返すJSONの形式：
@@ -352,29 +398,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   "email1": "メールアドレス",
   "description": "企業概要・事業内容（100〜300文字程度で簡潔に）",
   "industryCategoryMajor": "日本標準産業分類の大分類コード（A〜Tの1文字）",
-  "industryCategoryMiddle": "日本標準産業分類の中分類コード（2桁数字）",
+  "industryCategoryMiddle": "日本標準産業分類の中分類コード（2桁数字、例:39）",
+  "industryCategoryMinor": "日本標準産業分類の小分類コード（3桁数字、例:391）",
   "industryReason": "産業分類を選んだ理由（1行）"
 }
 
-日本標準産業分類の大分類は以下の通りです：
-A=農業・林業, B=漁業, C=鉱業・採石業・砂利採取業, D=建設業,
-E=製造業, F=電気・ガス・熱供給・水道業, G=情報通信業, H=運輸業・郵便業,
-I=卸売業・小売業, J=金融業・保険業, K=不動産業・物品賃貸業,
-L=学術研究・専門・技術サービス業, M=宿泊業・飲食サービス業,
-N=生活関連サービス業・娯楽業, O=教育・学習支援業, P=医療・福祉,
-Q=複合サービス事業, R=サービス業（他に分類されないもの）,
-S=公務, T=分類不能の産業
+日本標準産業分類（第4版）の主な大分類と中分類・小分類の例：
+A=農業・林業（01農業, 02林業）
+B=漁業（03漁業, 04水産養殖業）
+D=建設業（06総合工事業, 07職別工事業, 08設備工事業）
+E=製造業（09食料品, 10飲料・飼料, 11繊維, 14紙, 15印刷, 16化学, 24金属製品, 25はん用機械, 28電子部品, 30情報通信機械, 31輸送用機械）
+F=電気・ガス・熱供給・水道業（33電力, 34ガス, 36水道）
+G=情報通信業（37通信業, 38放送業, 39情報サービス業[391ソフトウェア業392情報処理393インターネット], 40インターネット付随, 41映像・音声・文字情報）
+H=運輸業・郵便業（44道路貨物運送, 47倉庫業, 48運輸附帯）
+I=卸売業・小売業（52各種商品卸, 53繊維・衣服等卸, 54機械器具等卸, 55その他卸売, 57各種商品小売, 58食料品小売, 59機械器具小売, 60その他小売, 61無店舗小売）
+J=金融業・保険業（62銀行, 63協同組織金融, 64非預金信用機関, 65金融商品取引, 66補助的金融, 67保険業）
+K=不動産業・物品賃貸業（68不動産取引業, 69不動産賃貸管理業, 70物品賃貸業）
+L=学術研究・専門・技術サービス業（71学術研究, 72専門サービス業[721法律会計722土地家屋調査士723行政書士724デザイン725著述活動726その他専門], 73広告業, 74技術サービス業）
+M=宿泊業・飲食サービス業（75宿泊業, 76飲食店, 77持ち帰り・配達飲食）
+N=生活関連サービス業・娯楽業（78洗濯・理容・美容, 79その他生活関連, 80娯楽業）
+O=教育・学習支援業（81学校教育, 82その他教育）
+P=医療・福祉（83医療業, 84保健衛生, 85社会保険・社会福祉, 86介護事業）
+Q=複合サービス事業（87郵便局, 88協同組合）
+R=サービス業（他に分類されないもの）（88廃棄物処理, 89自動車整備, 90機械等修理, 91職業紹介, 92建物サービス業, 93その他事業サービス, 94政治・経済・文化, 95宗教, 96その他サービス）
+S=公務
 
-中分類は大分類に対応する2桁コードで指定してください。
-例：G=情報通信業の場合、ソフトウェア業は39、インターネット付随サービス業は40`;
+小分類コードは上記の例を参考に、中分類コードに1桁追加した3桁の数字で指定してください。`;
 
           const userPrompt = `URL: ${targetUrl}
 
 ページタイトル: ${result.name || ''}
 メタ説明: ${metaDesc}
 
-ページテキスト:
-${pageText}`;
+クロールしたページのテキスト（${subUrls.length + 1}ページ分）:
+${combinedText}`;
 
           const completion = await openaiClient.chat.completions.create({
             model: "gpt-4o-mini",
@@ -383,19 +440,19 @@ ${pageText}`;
               { role: "user", content: userPrompt },
             ],
             response_format: { type: "json_object" },
-            max_tokens: 1000,
+            max_tokens: 1200,
             temperature: 0.1,
           });
 
           const raw = completion.choices[0]?.message?.content || '{}';
           return JSON.parse(raw) as Record<string, string>;
         } catch (err) {
-          console.error("OpenAI scrape analysis failed, falling back to regex:", err);
+          console.error("OpenAI scrape analysis failed:", err);
           return null;
         }
       })();
 
-      // Merge AI results into result (AI takes priority over regex, but don't overwrite if empty)
+      // ── Step 7: Merge AI results ───────────────────────────────────────────
       if (aiResult) {
         const aiFields = ['name', 'postalCode', 'address', 'phone1', 'phone2', 'fax', 'email1', 'description'] as const;
         for (const field of aiFields) {
@@ -405,15 +462,19 @@ ${pageText}`;
           }
         }
 
-        // Industry classification from AI
+        // Industry classification (major + middle + minor)
         if (aiResult.industryCategoryMajor && aiResult.industryCategoryMiddle) {
           const majorCode = String(aiResult.industryCategoryMajor).trim().toUpperCase();
-          const middleCode = String(aiResult.industryCategoryMiddle).trim().replace(/^0+/, '').padStart(2, '0');
+          const middleCode = String(aiResult.industryCategoryMiddle).trim().padStart(2, '0');
+          const rawMinor = aiResult.industryCategoryMinor ? String(aiResult.industryCategoryMinor).trim() : '';
+          const minorCode = rawMinor.match(/^\d{3}$/) ? rawMinor : undefined;
+
           if (/^[A-T]$/.test(majorCode) && /^\d{2}$/.test(middleCode)) {
             result.suggestedIndustryCodes = [{
               majorCode,
               middleCode,
-              confidence: 10, // AI result gets high confidence marker
+              ...(minorCode ? { minorCode } : {}),
+              confidence: 10,
             }];
           }
         }

@@ -21,7 +21,7 @@ import {
   getMinorByMiddle,
 } from "@/lib/industry-classifications";
 
-type SuggestedCode = { majorCode: string; middleCode: string; confidence: number };
+type SuggestedCode = { majorCode: string; middleCode: string; minorCode?: string; confidence: number };
 
 const formSchema = insertOfficeSchema.extend({
   code: z.string()
@@ -522,6 +522,8 @@ export default function OfficeFormPage() {
                           const middleOptions = getMiddleByMajor(s.majorCode);
                           const middleName = middleOptions.find((m) => m.code === s.middleCode)?.name || "";
                           const majorName = MAJOR_CATEGORIES.find((c) => c.code === s.majorCode)?.name || "";
+                          const minorOptions = s.middleCode ? getMinorByMiddle(s.middleCode) : [];
+                          const minorName = s.minorCode ? (minorOptions.find((m) => m.code === s.minorCode)?.name || "") : "";
                           return (
                             <Button
                               key={i}
@@ -531,13 +533,16 @@ export default function OfficeFormPage() {
                               onClick={() => {
                                 form.setValue("industryCategoryMajor", s.majorCode);
                                 form.setValue("industryCategoryMiddle", s.middleCode);
-                                form.setValue("industryCategoryMinor", "");
+                                form.setValue("industryCategoryMinor", s.minorCode || "");
                                 setSuggestedCodes([]);
                               }}
                               data-testid={`button-apply-suggestion-${i}`}
                             >
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               {s.majorCode} {majorName} &gt; {s.middleCode} {middleName}
+                              {s.minorCode && minorName && (
+                                <> &gt; {s.minorCode} {minorName}</>
+                              )}
                             </Button>
                           );
                         })}
