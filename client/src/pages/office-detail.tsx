@@ -42,7 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Calendar, History, TrendingUp, Brain, Loader2, Save, X, Sparkles, FileDown } from "lucide-react";
 import { type Office, type Person, type Karte, type OfficeSubsidyRecord, type SubsidyProgram, insertOfficeSubsidyRecordSchema, type InsertOfficeSubsidyRecord, type AuditLog, type SwotAnalysis } from "@shared/schema";
 import { getIndustryLabel } from "@/lib/industry-classifications";
-import { generateSwotPdf } from "@/lib/swot-pdf";
+import { generateSwotPdf, generateSwotDocx } from "@/lib/swot-pdf";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -152,6 +152,7 @@ export default function OfficeDetailPage() {
 
   const [augmentingCrossField, setAugmentingCrossField] = useState<string | null>(null);
   const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [wordGenerating, setWordGenerating] = useState(false);
 
   const augmentCrossFieldMutation = useMutation({
     mutationFn: (field: string) => apiRequest(`/api/offices/${officeId}/swot/augment-cross`, "POST", { field }),
@@ -818,46 +819,58 @@ export default function OfficeDetailPage() {
                     )}
                     保存
                   </Button>
-                  {swot && (
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        if (!swot || !office) return;
-                        setPdfGenerating(true);
-                        try {
-                          const industryLabel = office.industryCategoryMajor
-                            ? getIndustryLabel(office.industryCategoryMajor, office.industryCategoryMiddle ?? undefined, office.industryCategoryMinor ?? undefined)
-                            : undefined;
-                          await generateSwotPdf({
-                            officeName: office.name,
-                            industry: industryLabel ?? undefined,
-                            address: office.address ?? undefined,
-                            strengths: swot.strengths,
-                            weaknesses: swot.weaknesses,
-                            opportunities: swot.opportunities,
-                            threats: swot.threats,
-                            soStrategies: swot.soStrategies,
-                            woStrategies: swot.woStrategies,
-                            stStrategies: swot.stStrategies,
-                            wtStrategies: swot.wtStrategies,
-                          });
-                        } catch (e) {
-                          toast({ title: "PDFの生成に失敗しました", variant: "destructive" });
-                        } finally {
-                          setPdfGenerating(false);
-                        }
-                      }}
-                      disabled={pdfGenerating}
-                      data-testid="button-swot-pdf"
-                    >
-                      {pdfGenerating ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <FileDown className="h-4 w-4 mr-2" />
-                      )}
-                      PDFレポート
-                    </Button>
-                  )}
+                  {swot && (() => {
+                    const swotExportData = () => {
+                      const industryLabel = office?.industryCategoryMajor
+                        ? getIndustryLabel(office.industryCategoryMajor, office.industryCategoryMiddle ?? undefined, office.industryCategoryMinor ?? undefined)
+                        : undefined;
+                      return {
+                        officeName: office?.name ?? "",
+                        industry: industryLabel ?? undefined,
+                        address: office?.address ?? undefined,
+                        strengths: swot.strengths,
+                        weaknesses: swot.weaknesses,
+                        opportunities: swot.opportunities,
+                        threats: swot.threats,
+                        soStrategies: swot.soStrategies,
+                        woStrategies: swot.woStrategies,
+                        stStrategies: swot.stStrategies,
+                        wtStrategies: swot.wtStrategies,
+                      };
+                    };
+                    return (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={async () => {
+                            setPdfGenerating(true);
+                            try { await generateSwotPdf(swotExportData()); }
+                            catch { toast({ title: "PDFの生成に失敗しました", variant: "destructive" }); }
+                            finally { setPdfGenerating(false); }
+                          }}
+                          disabled={pdfGenerating || wordGenerating}
+                          data-testid="button-swot-pdf"
+                        >
+                          {pdfGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+                          PDFレポート
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={async () => {
+                            setWordGenerating(true);
+                            try { await generateSwotDocx(swotExportData()); }
+                            catch { toast({ title: "Wordファイルの生成に失敗しました", variant: "destructive" }); }
+                            finally { setWordGenerating(false); }
+                          }}
+                          disabled={pdfGenerating || wordGenerating}
+                          data-testid="button-swot-word"
+                        >
+                          {wordGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+                          Wordファイル
+                        </Button>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {swotLoading ? (
