@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Calendar, History, TrendingUp, Brain, Loader2, Save, X } from "lucide-react";
+import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Calendar, History, TrendingUp, Brain, Loader2, Save, X, Sparkles } from "lucide-react";
 import { type Office, type Person, type Karte, type OfficeSubsidyRecord, type SubsidyProgram, insertOfficeSubsidyRecordSchema, type InsertOfficeSubsidyRecord, type AuditLog, type SwotAnalysis } from "@shared/schema";
 import { getIndustryLabel } from "@/lib/industry-classifications";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -146,6 +146,21 @@ export default function OfficeDetailPage() {
     },
     onError: () => {
       toast({ title: "クロスSWOT生成に失敗しました", variant: "destructive" });
+    },
+  });
+
+  const augmentSwotMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/offices/${officeId}/swot/augment`, "POST"),
+    onSuccess: (data: { swot: SwotAnalysis; added: Record<string, string[]>; totalAdded: number }) => {
+      queryClient.setQueryData([`/api/offices/${officeId}/swot`], data.swot);
+      if (data.totalAdded > 0) {
+        toast({ title: `${data.totalAdded}件の新しい項目をAIが追加しました` });
+      } else {
+        toast({ title: "新たな追加項目はありませんでした", description: "既存の分析が十分に網羅されています" });
+      }
+    },
+    onError: () => {
+      toast({ title: "AI追加に失敗しました", variant: "destructive" });
     },
   });
 
@@ -715,6 +730,21 @@ export default function OfficeDetailPage() {
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       手入力で作成
+                    </Button>
+                  )}
+                  {swotData && (
+                    <Button
+                      variant="outline"
+                      onClick={() => augmentSwotMutation.mutate()}
+                      disabled={augmentSwotMutation.isPending}
+                      data-testid="button-augment-swot"
+                    >
+                      {augmentSwotMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-2" />
+                      )}
+                      AIで項目を追加
                     </Button>
                   )}
                   <Button

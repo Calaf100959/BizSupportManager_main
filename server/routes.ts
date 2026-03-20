@@ -2178,6 +2178,135 @@ JSONのみを返してください。`;
     }
   });
 
+  // POST /api/offices/:id/swot/augment - AI-add more items to existing SWOT
+  app.post('/api/offices/:id/swot/augment', isAuthenticated, async (req: any, res) => {
+    try {
+      const office = await storage.getOffice(req.params.id);
+      if (!office) return res.status(404).json({ message: "Office not found" });
+
+      const existing = await storage.getSwotAnalysis(req.params.id);
+      if (!existing) return res.status(404).json({ message: "先にSWOT分析を作成してください" });
+
+      // Collect web content if URL is available
+      let webContent = '';
+      if (office.url) {
+        try {
+          let targetUrl = office.url.trim();
+          if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+            targetUrl = 'https://' + targetUrl;
+          }
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
+          const response = await safeFetch(targetUrl, controller.signal);
+          clearTimeout(timeout);
+          if (response.ok) {
+            const buf = Buffer.from(await response.arrayBuffer());
+            const ct = response.headers.get('content-type') || '';
+            const ctMatch = ct.match(/charset=([^\s;]+)/i);
+            let charset = ctMatch ? ctMatch[1].trim() : 'utf-8';
+            if (!iconv.encodingExists(charset)) charset = 'utf-8';
+            const html = iconv.decode(buf, charset);
+            const $ = cheerio.load(html);
+            $('script,style,noscript,iframe,svg,nav,footer,header').remove();
+            webContent = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 3000);
+          }
+        } catch { /* ignore */ }
+      }
+
+      const industryInfo = [
+        office.industryCategoryMajor,
+        office.industryCategoryMiddle,
+        office.industryCategoryMinor,
+        office.industry,
+      ].filter(Boolean).join(' / ');
+
+      const formatList = (arr: unknown) =>
+        (Array.isArray(arr) ? arr : []).map((s, i) => `  ${i + 1}. ${s}`).join('\n') || '  （なし）';
+
+      const prompt = `あなたは中小企業経営診断の専門家です。以下の事業所情報と既存のSWOT分析をもとに、各カテゴリに追加すべき新しい視点・項目を提案してください。
+
+事業所情報：
+- 事業所名: ${office.name}
+- 業種: ${industryInfo || '不明'}
+- 従業員数: ${office.employees ? office.employees + '名' : '不明'}
+- 資本金: ${office.capital ? office.capital + '千円' : '不明'}
+- 所在地: ${office.address || '不明'}
+- 設立: ${office.foundedDate || '不明'}
+- ウェブサイトURL: ${office.url || '未登録'}
+${webContent ? `\nウェブサイト内容（一部）:\n${webContent}` : ''}
+
+【既存のSWOT項目】
+
+強み (Strengths) — 現在の項目:
+${formatList(existing.strengths)}
+
+弱み (Weaknesses) — 現在の項目:
+${formatList(existing.weaknesses)}
+
+機会 (Opportunities) — 現在の項目:
+${formatList(existing.opportunities)}
+
+脅威 (Threats) — 現在の項目:
+${formatList(existing.threats)}
+
+【指示】
+上記の既存項目と重複しない、まだカバーされていない新しい視点から、各カテゴリに1〜3項目を追加してください。
+外部情報（業界動向・市場環境・社会変化）も考慮し、ウェブサイト情報があれば内部分析にも活用してください。
+1項目あたり30〜60文字で日本語で記述してください。
+
+以下のJSON形式で追加項目のみを返してください（既存項目は含めないでください）:
+
+{
+  "strengths": ["新しい強みの追加項目", ...],
+  "weaknesses": ["新しい弱みの追加項目", ...],
+  "opportunities": ["新しい機会の追加項目", ...],
+  "threats": ["新しい脅威の追加項目", ...]
+}
+
+追加項目がない場合は空配列 [] を返してください。JSONのみを返してください。`;
+
+      const completion = await openaiClient.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.8,
+      });
+
+      const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+      const toAddArray = (arr: unknown, max = 3): string[] =>
+        (Array.isArray(arr) ? arr.filter((s): s is string => typeof s === 'string' && s.trim().length > 0) : []).slice(0, max);
+
+      const additions = {
+        strengths: toAddArray(parsed.strengths),
+        weaknesses: toAddArray(parsed.weaknesses),
+        opportunities: toAddArray(parsed.opportunities),
+        threats: toAddArray(parsed.threats),
+      };
+
+      // Merge: existing + new additions (no duplicates)
+      const mergeUnique = (existing: unknown, additions: string[]): string[] => {
+        const base = Array.isArray(existing) ? existing.filter((s): s is string => typeof s === 'string') : [];
+        const newItems = additions.filter(a => !base.some(b => b.trim() === a.trim()));
+        return [...base, ...newItems];
+      };
+
+      const merged = {
+        strengths: mergeUnique(existing.strengths, additions.strengths),
+        weaknesses: mergeUnique(existing.weaknesses, additions.weaknesses),
+        opportunities: mergeUnique(existing.opportunities, additions.opportunities),
+        threats: mergeUnique(existing.threats, additions.threats),
+      };
+
+      const totalAdded = Object.values(additions).reduce((sum, arr) => sum + arr.length, 0);
+
+      const updated = await storage.upsertSwotAnalysis(req.params.id, merged);
+      res.json({ swot: updated, added: additions, totalAdded });
+    } catch (error) {
+      console.error("Error augmenting SWOT:", error);
+      res.status(500).json({ message: "SWOT項目の追加に失敗しました" });
+    }
+  });
+
   // POST /api/offices/:id/swot/cross - AI-generate cross SWOT strategies
   app.post('/api/offices/:id/swot/cross', isAuthenticated, async (req: any, res) => {
     try {
