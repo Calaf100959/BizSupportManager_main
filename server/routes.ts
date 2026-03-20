@@ -2153,11 +2153,13 @@ JSONのみを返してください。`;
       });
 
       const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+      const normalizeArray = (arr: unknown, max = 5): string[] =>
+        (Array.isArray(arr) ? arr.filter((s): s is string => typeof s === 'string') : []).slice(0, max);
       const swotData = {
-        strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
-        weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses : [],
-        opportunities: Array.isArray(parsed.opportunities) ? parsed.opportunities : [],
-        threats: Array.isArray(parsed.threats) ? parsed.threats : [],
+        strengths: normalizeArray(parsed.strengths),
+        weaknesses: normalizeArray(parsed.weaknesses),
+        opportunities: normalizeArray(parsed.opportunities),
+        threats: normalizeArray(parsed.threats),
       };
 
       const swot = await storage.upsertSwotAnalysis(req.params.id, swotData);
@@ -2211,11 +2213,13 @@ JSONのみを返してください。`;
       });
 
       const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+      const normalizeArr = (arr: unknown, max = 4): string[] =>
+        (Array.isArray(arr) ? arr.filter((s): s is string => typeof s === 'string') : []).slice(0, max);
       const crossData = {
-        soStrategies: Array.isArray(parsed.soStrategies) ? parsed.soStrategies : [],
-        woStrategies: Array.isArray(parsed.woStrategies) ? parsed.woStrategies : [],
-        stStrategies: Array.isArray(parsed.stStrategies) ? parsed.stStrategies : [],
-        wtStrategies: Array.isArray(parsed.wtStrategies) ? parsed.wtStrategies : [],
+        soStrategies: normalizeArr(parsed.soStrategies),
+        woStrategies: normalizeArr(parsed.woStrategies),
+        stStrategies: normalizeArr(parsed.stStrategies),
+        wtStrategies: normalizeArr(parsed.wtStrategies),
       };
 
       const updated = await storage.upsertSwotAnalysis(req.params.id, crossData);
