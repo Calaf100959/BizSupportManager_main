@@ -39,8 +39,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Calendar, History, TrendingUp } from "lucide-react";
-import { type Office, type Person, type Karte, type OfficeSubsidyRecord, type SubsidyProgram, insertOfficeSubsidyRecordSchema, type InsertOfficeSubsidyRecord, type AuditLog } from "@shared/schema";
+import { Building2, Edit, Trash2, UserPlus, User, FileText, Plus, BookOpen, Calendar, History, TrendingUp, Brain, Loader2, Save, X } from "lucide-react";
+import { type Office, type Person, type Karte, type OfficeSubsidyRecord, type SubsidyProgram, insertOfficeSubsidyRecordSchema, type InsertOfficeSubsidyRecord, type AuditLog, type SwotAnalysis } from "@shared/schema";
 import { getIndustryLabel } from "@/lib/industry-classifications";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +57,18 @@ export default function OfficeDetailPage() {
   const [deleteSubsidyId, setDeleteSubsidyId] = useState<string | null>(null);
   const [subsidyDialogOpen, setSubsidyDialogOpen] = useState(false);
   const [editingSubsidy, setEditingSubsidy] = useState<OfficeSubsidyRecord | null>(null);
+
+  // SWOT editing state
+  const [swotLocal, setSwotLocal] = useState<{
+    strengths: string[];
+    weaknesses: string[];
+    opportunities: string[];
+    threats: string[];
+    soStrategies: string[];
+    woStrategies: string[];
+    stStrategies: string[];
+    wtStrategies: string[];
+  } | null>(null);
 
   const { data: office, isLoading: officeLoading } = useQuery<Office>({
     queryKey: [`/api/offices/${officeId}`],
@@ -85,6 +97,60 @@ export default function OfficeDetailPage() {
   const { data: auditLogs = [], isLoading: auditLogsLoading } = useQuery<AuditLog[]>({
     queryKey: [`/api/audit-logs/office/${officeId}`],
     enabled: !!officeId,
+  });
+
+  const { data: swotData, isLoading: swotLoading } = useQuery<SwotAnalysis | null>({
+    queryKey: [`/api/offices/${officeId}/swot`],
+    enabled: !!officeId,
+  });
+
+  // Sync swotLocal from server data when it loads or changes
+  useEffect(() => {
+    if (swotData) {
+      setSwotLocal({
+        strengths: (swotData.strengths as string[]) || [],
+        weaknesses: (swotData.weaknesses as string[]) || [],
+        opportunities: (swotData.opportunities as string[]) || [],
+        threats: (swotData.threats as string[]) || [],
+        soStrategies: (swotData.soStrategies as string[]) || [],
+        woStrategies: (swotData.woStrategies as string[]) || [],
+        stStrategies: (swotData.stStrategies as string[]) || [],
+        wtStrategies: (swotData.wtStrategies as string[]) || [],
+      });
+    }
+  }, [swotData]);
+
+  const generateSwotMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/offices/${officeId}/swot/generate`, "POST"),
+    onSuccess: (data: SwotAnalysis) => {
+      queryClient.setQueryData([`/api/offices/${officeId}/swot`], data);
+      toast({ title: "SWOT分析を生成しました" });
+    },
+    onError: () => {
+      toast({ title: "SWOT分析の生成に失敗しました", variant: "destructive" });
+    },
+  });
+
+  const generateCrossSwotMutation = useMutation({
+    mutationFn: () => apiRequest(`/api/offices/${officeId}/swot/cross`, "POST"),
+    onSuccess: (data: SwotAnalysis) => {
+      queryClient.setQueryData([`/api/offices/${officeId}/swot`], data);
+      toast({ title: "クロスSWOT戦略を生成しました" });
+    },
+    onError: () => {
+      toast({ title: "クロスSWOT生成に失敗しました", variant: "destructive" });
+    },
+  });
+
+  const saveSwotMutation = useMutation({
+    mutationFn: (data: typeof swotLocal) => apiRequest(`/api/offices/${officeId}/swot`, "PUT", data),
+    onSuccess: (data: SwotAnalysis) => {
+      queryClient.setQueryData([`/api/offices/${officeId}/swot`], data);
+      toast({ title: "SWOT分析を保存しました" });
+    },
+    onError: () => {
+      toast({ title: "保存に失敗しました", variant: "destructive" });
+    },
   });
 
   const subsidyForm = useForm<InsertOfficeSubsidyRecord>({
@@ -485,8 +551,12 @@ export default function OfficeDetailPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="subsidy" className="w-full" data-testid="tabs-office-details">
+      <Tabs defaultValue="swot" className="w-full" data-testid="tabs-office-details">
         <TabsList data-testid="tabs-list-office-details">
+          <TabsTrigger value="swot" data-testid="tab-swot">
+            <Brain className="h-4 w-4 mr-2" />
+            SWOT分析
+          </TabsTrigger>
           <TabsTrigger value="subsidy" data-testid="tab-subsidy">
             <BookOpen className="h-4 w-4 mr-2" />
             補助金管理
@@ -496,6 +566,240 @@ export default function OfficeDetailPage() {
             変更履歴
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="swot" data-testid="tab-content-swot">
+          {(() => {
+            const swot = swotLocal;
+            const hasSWOT = swot && (swot.strengths.length > 0 || swot.weaknesses.length > 0 || swot.opportunities.length > 0 || swot.threats.length > 0);
+
+            const updateList = (field: keyof NonNullable<typeof swotLocal>, idx: number, value: string) => {
+              setSwotLocal(prev => {
+                if (!prev) return prev;
+                const arr = [...(prev[field] as string[])];
+                arr[idx] = value;
+                return { ...prev, [field]: arr };
+              });
+            };
+
+            const removeItem = (field: keyof NonNullable<typeof swotLocal>, idx: number) => {
+              setSwotLocal(prev => {
+                if (!prev) return prev;
+                const arr = [...(prev[field] as string[])];
+                arr.splice(idx, 1);
+                return { ...prev, [field]: arr };
+              });
+            };
+
+            const addItem = (field: keyof NonNullable<typeof swotLocal>) => {
+              setSwotLocal(prev => {
+                if (!prev) return { strengths: [], weaknesses: [], opportunities: [], threats: [], soStrategies: [], woStrategies: [], stStrategies: [], wtStrategies: [], [field]: [''] };
+                return { ...prev, [field]: [...(prev[field] as string[]), ''] };
+              });
+            };
+
+            const SwotCell = ({ label, field, color }: { label: string; field: keyof NonNullable<typeof swotLocal>; color: string }) => (
+              <div className="p-4 border rounded-md space-y-2 flex-1 min-h-[160px]">
+                <p className={`font-semibold text-sm ${color}`}>{label}</p>
+                {swot ? (
+                  <div className="space-y-1">
+                    {(swot[field] as string[]).map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-1">
+                        <Input
+                          value={item}
+                          onChange={e => updateList(field, idx, e.target.value)}
+                          className="h-7 text-sm"
+                          placeholder="項目を入力"
+                          data-testid={`swot-input-${String(field)}-${idx}`}
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => removeItem(field, idx)}
+                          data-testid={`swot-remove-${String(field)}-${idx}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs w-full"
+                      onClick={() => addItem(field)}
+                      data-testid={`swot-add-${String(field)}`}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      追加
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">SWOT分析を生成してください</p>
+                )}
+              </div>
+            );
+
+            const CrossCell = ({ label, field, bgClass }: { label: string; field: keyof NonNullable<typeof swotLocal>; bgClass: string }) => (
+              <div className={`p-3 border rounded-md space-y-2 ${bgClass}`}>
+                <p className="font-semibold text-sm">{label}</p>
+                {swot ? (
+                  <div className="space-y-1">
+                    {(swot[field] as string[]).map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-1">
+                        <Input
+                          value={item}
+                          onChange={e => updateList(field, idx, e.target.value)}
+                          className="h-7 text-xs bg-background"
+                          placeholder="戦略を入力"
+                          data-testid={`cross-input-${String(field)}-${idx}`}
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => removeItem(field, idx)}
+                          data-testid={`cross-remove-${String(field)}-${idx}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs w-full"
+                      onClick={() => addItem(field)}
+                      data-testid={`cross-add-${String(field)}`}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      追加
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">-</p>
+                )}
+              </div>
+            );
+
+            return (
+              <div className="space-y-4">
+                {/* Action buttons */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    onClick={() => generateSwotMutation.mutate()}
+                    disabled={generateSwotMutation.isPending}
+                    data-testid="button-generate-swot"
+                  >
+                    {generateSwotMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Brain className="h-4 w-4 mr-2" />
+                    )}
+                    SWOT分析を生成
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => generateCrossSwotMutation.mutate()}
+                    disabled={!hasSWOT || generateCrossSwotMutation.isPending}
+                    data-testid="button-generate-cross-swot"
+                  >
+                    {generateCrossSwotMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Brain className="h-4 w-4 mr-2" />
+                    )}
+                    クロスSWOT生成
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => swot && saveSwotMutation.mutate(swot)}
+                    disabled={!swot || saveSwotMutation.isPending}
+                    data-testid="button-save-swot"
+                  >
+                    {saveSwotMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    保存
+                  </Button>
+                </div>
+
+                {swotLoading ? (
+                  <div className="flex items-center justify-center py-12 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    読み込み中...
+                  </div>
+                ) : (
+                  <>
+                    {/* SWOT 2x2 Grid */}
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">SWOT分析</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 gap-3">
+                          <SwotCell label="強み (Strengths)" field="strengths" color="text-blue-600 dark:text-blue-400" />
+                          <SwotCell label="弱み (Weaknesses)" field="weaknesses" color="text-orange-600 dark:text-orange-400" />
+                          <SwotCell label="機会 (Opportunities)" field="opportunities" color="text-green-600 dark:text-green-400" />
+                          <SwotCell label="脅威 (Threats)" field="threats" color="text-red-600 dark:text-red-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Cross SWOT 3x3 Matrix */}
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <CardTitle className="text-base">クロスSWOT分析</CardTitle>
+                          {!hasSWOT && (
+                            <p className="text-xs text-muted-foreground">先にSWOT分析を生成してください</p>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <div className="grid" style={{ gridTemplateColumns: '130px 1fr 1fr', gridTemplateRows: 'auto 1fr 1fr', gap: '8px', minWidth: '480px' }}>
+                            {/* Row 0: header */}
+                            <div /> {/* empty top-left */}
+                            <div className="text-center text-sm font-semibold text-blue-600 dark:text-blue-400 py-2 border rounded-md bg-blue-50 dark:bg-blue-950/30">強み (S)</div>
+                            <div className="text-center text-sm font-semibold text-orange-600 dark:text-orange-400 py-2 border rounded-md bg-orange-50 dark:bg-orange-950/30">弱み (W)</div>
+
+                            {/* Row 1: Opportunities */}
+                            <div className="text-center text-sm font-semibold text-green-600 dark:text-green-400 py-2 px-1 border rounded-md bg-green-50 dark:bg-green-950/30 flex items-center justify-center">機会 (O)</div>
+                            <CrossCell
+                              label="積極戦略 (SO)"
+                              field="soStrategies"
+                              bgClass="bg-blue-50/50 dark:bg-blue-950/20"
+                            />
+                            <CrossCell
+                              label="改善戦略 (WO)"
+                              field="woStrategies"
+                              bgClass="bg-green-50/50 dark:bg-green-950/20"
+                            />
+
+                            {/* Row 2: Threats */}
+                            <div className="text-center text-sm font-semibold text-red-600 dark:text-red-400 py-2 px-1 border rounded-md bg-red-50 dark:bg-red-950/30 flex items-center justify-center">脅威 (T)</div>
+                            <CrossCell
+                              label="差別化戦略 (ST)"
+                              field="stStrategies"
+                              bgClass="bg-orange-50/50 dark:bg-orange-950/20"
+                            />
+                            <CrossCell
+                              label="致命傷回避 (WT)"
+                              field="wtStrategies"
+                              bgClass="bg-red-50/50 dark:bg-red-950/20"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+        </TabsContent>
 
         <TabsContent value="subsidy" data-testid="tab-content-subsidy">
           <Card>

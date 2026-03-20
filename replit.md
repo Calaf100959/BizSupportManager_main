@@ -36,10 +36,11 @@ Preferred communication style: Simple, everyday language.
     *   **Company Settings:** User-specific business information including invoice registration number (T+13 digits), bank account details for invoices, and default payment terms.
     *   **Industry Classification (日本標準産業分類):** Cascading 3-level dropdown (大分類 A-T → 中分類 99 items → 小分類 ~530 items) based on 日本標準産業分類第4版. Static data embedded in `client/src/lib/industry-classifications.ts`. Displayed in office detail as breadcrumb-style label.
     *   **URL Scraping:** `POST /api/offices/scrape-url` endpoint uses cheerio to extract company name, address, phone numbers, email, and suggested industry classification from a website URL. "URLから情報取得" button in the office form auto-fills fields.
+    *   **SWOT・クロスSWOT分析:** Per-office AI-powered SWOT analysis (強み/弱み/機会/脅威) and cross-SWOT strategy generation (SO積極/WO改善/ST差別化/WT致命傷回避). Stored in `swot_analyses` table (one record per office, upserted). API: GET/PUT `/api/offices/:id/swot`, POST `/api/offices/:id/swot/generate` (AI SWOT), POST `/api/offices/:id/swot/cross` (AI cross strategies). AI uses office metadata + optional website crawl. UI: "SWOT分析" tab in office detail with editable 2×2 SWOT grid and 3×3 cross-SWOT matrix, inline item add/edit/delete, and manual save.
 
 ### Database Schema
 
-*   **Core Tables:** `users`, `offices`, `persons`, `kartes`, `worklogs`, `sessions`, `company_settings`, `invoices`, `invoice_items`, `payments`.
+*   **Core Tables:** `users`, `offices`, `persons`, `kartes`, `worklogs`, `sessions`, `company_settings`, `invoices`, `invoice_items`, `payments`, `swot_analyses`.
 *   **Industry Classification:** `offices` table includes `industry_category_major` (大分類, A-T), `industry_category_middle` (中分類, 2-digit), `industry_category_minor` (小分類, 3-digit) for 日本標準産業分類第4版 support.
 *   **Schema Design:** UUID primary keys, `createdAt`/`updatedAt` timestamps, normalized data structures with foreign key relationships, flexible text fields for Japanese content, Drizzle-Zod integration for schema validation.
 

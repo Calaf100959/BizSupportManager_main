@@ -19,6 +19,7 @@ import {
   invoices,
   invoiceItems,
   payments,
+  swotAnalyses,
   type User,
   type UpsertUser,
   type Office,
@@ -56,6 +57,8 @@ import {
   type InsertInvoiceItem,
   type Payment,
   type InsertPayment,
+  type SwotAnalysis,
+  type InsertSwotAnalysis,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, ilike, sql, and } from "drizzle-orm";
@@ -199,6 +202,10 @@ export interface IStorage {
   createPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentsByInvoice(invoiceId: string): Promise<Payment[]>;
   deletePayment(id: string): Promise<void>;
+
+  // SWOT analysis operations
+  getSwotAnalysis(officeId: string): Promise<SwotAnalysis | undefined>;
+  upsertSwotAnalysis(officeId: string, data: Partial<InsertSwotAnalysis>): Promise<SwotAnalysis>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -314,6 +321,7 @@ export class DatabaseStorage implements IStorage {
         await tx.delete(financialMetrics).where(eq(financialMetrics.periodId, period.id));
       }
       await tx.delete(financialPeriods).where(eq(financialPeriods.officeId, id));
+      await tx.delete(swotAnalyses).where(eq(swotAnalyses.officeId, id));
       await tx.delete(kartes).where(eq(kartes.officeId, id));
       await tx.delete(persons).where(eq(persons.officeId, id));
       await tx.delete(offices).where(eq(offices.id, id));
@@ -1170,6 +1178,23 @@ export class DatabaseStorage implements IStorage {
         status: newStatus,
       });
     }
+  }
+  // SWOT analysis operations
+  async getSwotAnalysis(officeId: string): Promise<SwotAnalysis | undefined> {
+    const [swot] = await db.select().from(swotAnalyses).where(eq(swotAnalyses.officeId, officeId));
+    return swot;
+  }
+
+  async upsertSwotAnalysis(officeId: string, data: Partial<InsertSwotAnalysis>): Promise<SwotAnalysis> {
+    const [swot] = await db
+      .insert(swotAnalyses)
+      .values({ officeId, ...data })
+      .onConflictDoUpdate({
+        target: swotAnalyses.officeId,
+        set: { ...data, updatedAt: new Date() },
+      })
+      .returning();
+    return swot;
   }
 }
 

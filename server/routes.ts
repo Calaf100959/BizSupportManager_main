@@ -2066,6 +2066,181 @@ ${combinedText}`;
     }
   });
 
+  // ===== SWOT Analysis Endpoints =====
+
+  // GET /api/offices/:id/swot - Get SWOT analysis for an office
+  app.get('/api/offices/:id/swot', isAuthenticated, async (req: any, res) => {
+    try {
+      const swot = await storage.getSwotAnalysis(req.params.id);
+      if (!swot) return res.json(null);
+      res.json(swot);
+    } catch (error) {
+      console.error("Error fetching SWOT:", error);
+      res.status(500).json({ message: "Failed to fetch SWOT analysis" });
+    }
+  });
+
+  // POST /api/offices/:id/swot/generate - AI-generate S/W/O/T
+  app.post('/api/offices/:id/swot/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const office = await storage.getOffice(req.params.id);
+      if (!office) return res.status(404).json({ message: "Office not found" });
+
+      // Collect web content if URL is available
+      let webContent = '';
+      if (office.url) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
+          const response = await safeFetch(office.url, controller.signal);
+          clearTimeout(timeout);
+          if (response.ok) {
+            const buf = Buffer.from(await response.arrayBuffer());
+            const ct = response.headers.get('content-type') || '';
+            const ctMatch = ct.match(/charset=([^\s;]+)/i);
+            let charset = ctMatch ? ctMatch[1].trim() : 'utf-8';
+            if (!iconv.encodingExists(charset)) charset = 'utf-8';
+            const html = iconv.decode(buf, charset);
+            const $ = cheerio.load(html);
+            $('script,style,noscript,iframe,svg,nav,footer,header').remove();
+            webContent = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 3000);
+          }
+        } catch { /* ignore */ }
+      }
+
+      const industryInfo = [
+        office.industryCategoryMajor,
+        office.industryCategoryMiddle,
+        office.industryCategoryMinor,
+        office.industry,
+      ].filter(Boolean).join(' / ');
+
+      const prompt = `あなたは中小企業経営診断の専門家です。以下の事業所情報をもとにSWOT分析を行ってください。
+
+事業所情報：
+- 事業所名: ${office.name}
+- 業種: ${industryInfo || '不明'}
+- 従業員数: ${office.employees ? office.employees + '名' : '不明'}
+- 資本金: ${office.capital ? office.capital + '千円' : '不明'}
+- 所在地: ${office.address || '不明'}
+- 設立: ${office.foundedDate || '不明'}
+${webContent ? `\nウェブサイト内容（一部）:\n${webContent}` : ''}
+
+以下のJSON形式で回答してください。各項目は3〜5項目の文字列配列で、日本語で簡潔に記述してください（1項目あたり30〜60文字）。
+
+{
+  "strengths": ["強みの項目1", "強みの項目2", ...],
+  "weaknesses": ["弱みの項目1", "弱みの項目2", ...],
+  "opportunities": ["機会の項目1", "機会の項目2", ...],
+  "threats": ["脅威の項目1", "脅威の項目2", ...]
+}
+
+強み・弱みは内部環境（企業固有の特性）、機会・脅威は外部環境（市場・業界・社会動向）を対象としてください。
+ウェブサイト情報がある場合は内部環境の分析に活用し、外部環境は業種・規模に基づくマクロ・業界動向から推定してください。
+JSONのみを返してください。`;
+
+      const completion = await openaiClient.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+      });
+
+      const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+      const swotData = {
+        strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+        weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses : [],
+        opportunities: Array.isArray(parsed.opportunities) ? parsed.opportunities : [],
+        threats: Array.isArray(parsed.threats) ? parsed.threats : [],
+      };
+
+      const swot = await storage.upsertSwotAnalysis(req.params.id, swotData);
+      res.json(swot);
+    } catch (error) {
+      console.error("Error generating SWOT:", error);
+      res.status(500).json({ message: "SWOT分析の生成に失敗しました" });
+    }
+  });
+
+  // POST /api/offices/:id/swot/cross - AI-generate cross SWOT strategies
+  app.post('/api/offices/:id/swot/cross', isAuthenticated, async (req: any, res) => {
+    try {
+      const swot = await storage.getSwotAnalysis(req.params.id);
+      if (!swot) return res.status(404).json({ message: "先にSWOT分析を生成してください" });
+
+      const prompt = `あなたは中小企業経営診断の専門家です。以下のSWOT分析をもとに、クロスSWOT戦略を作成してください。
+
+【強み(S)】
+${(swot.strengths as string[]).map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+【弱み(W)】
+${(swot.weaknesses as string[]).map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+【機会(O)】
+${(swot.opportunities as string[]).map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+【脅威(T)】
+${(swot.threats as string[]).map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+以下のJSON形式で各戦略を3〜4項目の文字列配列として返してください（1項目あたり30〜70文字）。
+
+{
+  "soStrategies": ["SO積極戦略1", ...],
+  "woStrategies": ["WO改善戦略1", ...],
+  "stStrategies": ["ST差別化戦略1", ...],
+  "wtStrategies": ["WT致命傷回避戦略1", ...]
+}
+
+- SO戦略: 強みを活かして機会を掴む積極的な戦略
+- WO戦略: 弱みを改善して機会を活用する戦略
+- ST戦略: 強みを活かして脅威を回避する差別化戦略
+- WT戦略: 弱みと脅威を最小化する防衛・縮小戦略
+JSONのみを返してください。`;
+
+      const completion = await openaiClient.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+      });
+
+      const parsed = JSON.parse(completion.choices[0].message.content || '{}');
+      const crossData = {
+        soStrategies: Array.isArray(parsed.soStrategies) ? parsed.soStrategies : [],
+        woStrategies: Array.isArray(parsed.woStrategies) ? parsed.woStrategies : [],
+        stStrategies: Array.isArray(parsed.stStrategies) ? parsed.stStrategies : [],
+        wtStrategies: Array.isArray(parsed.wtStrategies) ? parsed.wtStrategies : [],
+      };
+
+      const updated = await storage.upsertSwotAnalysis(req.params.id, crossData);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error generating cross SWOT:", error);
+      res.status(500).json({ message: "クロスSWOT生成に失敗しました" });
+    }
+  });
+
+  // PUT /api/offices/:id/swot - Save/update SWOT manually
+  app.put('/api/offices/:id/swot', isAuthenticated, async (req: any, res) => {
+    try {
+      const { strengths, weaknesses, opportunities, threats, soStrategies, woStrategies, stStrategies, wtStrategies } = req.body;
+      const data: Record<string, string[]> = {};
+      if (strengths !== undefined) data.strengths = strengths;
+      if (weaknesses !== undefined) data.weaknesses = weaknesses;
+      if (opportunities !== undefined) data.opportunities = opportunities;
+      if (threats !== undefined) data.threats = threats;
+      if (soStrategies !== undefined) data.soStrategies = soStrategies;
+      if (woStrategies !== undefined) data.woStrategies = woStrategies;
+      if (stStrategies !== undefined) data.stStrategies = stStrategies;
+      if (wtStrategies !== undefined) data.wtStrategies = wtStrategies;
+      const swot = await storage.upsertSwotAnalysis(req.params.id, data);
+      res.json(swot);
+    } catch (error) {
+      console.error("Error saving SWOT:", error);
+      res.status(500).json({ message: "SWOT分析の保存に失敗しました" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

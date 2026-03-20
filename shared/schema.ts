@@ -702,3 +702,28 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
 
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+
+// ===== SWOT Analysis =====
+export const swotAnalyses = pgTable("swot_analyses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  officeId: varchar("office_id").references(() => offices.id).notNull().unique(),
+  strengths: jsonb("strengths").$type<string[]>().default([]),
+  weaknesses: jsonb("weaknesses").$type<string[]>().default([]),
+  opportunities: jsonb("opportunities").$type<string[]>().default([]),
+  threats: jsonb("threats").$type<string[]>().default([]),
+  soStrategies: jsonb("so_strategies").$type<string[]>().default([]),
+  woStrategies: jsonb("wo_strategies").$type<string[]>().default([]),
+  stStrategies: jsonb("st_strategies").$type<string[]>().default([]),
+  wtStrategies: jsonb("wt_strategies").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSwotAnalysisSchema = createInsertSchema(swotAnalyses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSwotAnalysis = z.infer<typeof insertSwotAnalysisSchema>;
+export type SwotAnalysis = typeof swotAnalyses.$inferSelect;
