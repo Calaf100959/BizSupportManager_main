@@ -802,53 +802,48 @@ export default function OfficeDetailPage() {
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <CardTitle className="text-base">クロスSWOT分析</CardTitle>
-                          {!hasSWOT && (
-                            <p className="text-xs text-muted-foreground">先にSWOT分析を生成してください</p>
+                          {!hasCross && (
+                            <p className="text-xs text-muted-foreground">
+                              {hasSWOT ? "各セルに手動で戦略を追加するか、「クロスSWOT生成」でAIが作成します" : "先にSWOT分析を作成してください"}
+                            </p>
                           )}
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {!hasCross ? (
-                          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2" data-testid="cross-swot-placeholder">
-                            <p className="text-sm">クロスSWOT戦略はまだ生成されていません</p>
-                            <p className="text-xs">{hasSWOT ? "「クロスSWOT生成」ボタンでAIが戦略を作成します" : "先にSWOT分析を生成してください"}</p>
-                          </div>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <div className="grid" style={{ gridTemplateColumns: '130px 1fr 1fr', gridTemplateRows: 'auto 1fr 1fr', gap: '8px', minWidth: '480px' }}>
-                              {/* Row 0: header */}
-                              <div /> {/* empty top-left */}
-                              <div className="text-center text-sm font-semibold text-blue-600 dark:text-blue-400 py-2 border rounded-md bg-blue-50 dark:bg-blue-950/30">強み (S)</div>
-                              <div className="text-center text-sm font-semibold text-orange-600 dark:text-orange-400 py-2 border rounded-md bg-orange-50 dark:bg-orange-950/30">弱み (W)</div>
+                        <div className="overflow-x-auto">
+                          <div className="grid" style={{ gridTemplateColumns: '130px 1fr 1fr', gridTemplateRows: 'auto 1fr 1fr', gap: '8px', minWidth: '480px' }}>
+                            {/* Row 0: header */}
+                            <div /> {/* empty top-left */}
+                            <div className="text-center text-sm font-semibold text-blue-600 dark:text-blue-400 py-2 border rounded-md bg-blue-50 dark:bg-blue-950/30">強み (S)</div>
+                            <div className="text-center text-sm font-semibold text-orange-600 dark:text-orange-400 py-2 border rounded-md bg-orange-50 dark:bg-orange-950/30">弱み (W)</div>
 
-                              {/* Row 1: Opportunities */}
-                              <div className="text-center text-sm font-semibold text-green-600 dark:text-green-400 py-2 px-1 border rounded-md bg-green-50 dark:bg-green-950/30 flex items-center justify-center">機会 (O)</div>
-                              <CrossCell
-                                label="積極戦略 (SO)"
-                                field="soStrategies"
-                                bgClass="bg-blue-50/50 dark:bg-blue-950/20"
-                              />
-                              <CrossCell
-                                label="改善戦略 (WO)"
-                                field="woStrategies"
-                                bgClass="bg-green-50/50 dark:bg-green-950/20"
-                              />
+                            {/* Row 1: Opportunities */}
+                            <div className="text-center text-sm font-semibold text-green-600 dark:text-green-400 py-2 px-1 border rounded-md bg-green-50 dark:bg-green-950/30 flex items-center justify-center">機会 (O)</div>
+                            <CrossCell
+                              label="積極戦略 (SO)"
+                              field="soStrategies"
+                              bgClass="bg-blue-50/50 dark:bg-blue-950/20"
+                            />
+                            <CrossCell
+                              label="改善戦略 (WO)"
+                              field="woStrategies"
+                              bgClass="bg-green-50/50 dark:bg-green-950/20"
+                            />
 
-                              {/* Row 2: Threats */}
-                              <div className="text-center text-sm font-semibold text-red-600 dark:text-red-400 py-2 px-1 border rounded-md bg-red-50 dark:bg-red-950/30 flex items-center justify-center">脅威 (T)</div>
-                              <CrossCell
-                                label="差別化戦略 (ST)"
-                                field="stStrategies"
-                                bgClass="bg-orange-50/50 dark:bg-orange-950/20"
-                              />
-                              <CrossCell
-                                label="致命傷回避 (WT)"
-                                field="wtStrategies"
-                                bgClass="bg-red-50/50 dark:bg-red-950/20"
-                              />
-                            </div>
+                            {/* Row 2: Threats */}
+                            <div className="text-center text-sm font-semibold text-red-600 dark:text-red-400 py-2 px-1 border rounded-md bg-red-50 dark:bg-red-950/30 flex items-center justify-center">脅威 (T)</div>
+                            <CrossCell
+                              label="差別化戦略 (ST)"
+                              field="stStrategies"
+                              bgClass="bg-orange-50/50 dark:bg-orange-950/20"
+                            />
+                            <CrossCell
+                              label="致命傷回避 (WT)"
+                              field="wtStrategies"
+                              bgClass="bg-red-50/50 dark:bg-red-950/20"
+                            />
                           </div>
-                        )}
+                        </div>
                       </CardContent>
                     </Card>
                   </>
