@@ -15,6 +15,7 @@ import {
   insertInvoiceSchema,
   insertInvoiceItemSchema,
   insertPaymentSchema,
+  insertSwotAnalysisSchema,
 } from "@shared/schema";
 import { sendEmail } from "./gmail";
 import * as cheerio from "cheerio";
@@ -2223,17 +2224,11 @@ JSONのみを返してください。`;
   // PUT /api/offices/:id/swot - Save/update SWOT manually
   app.put('/api/offices/:id/swot', isAuthenticated, async (req: any, res) => {
     try {
-      const { strengths, weaknesses, opportunities, threats, soStrategies, woStrategies, stStrategies, wtStrategies } = req.body;
-      const data: Record<string, string[]> = {};
-      if (strengths !== undefined) data.strengths = strengths;
-      if (weaknesses !== undefined) data.weaknesses = weaknesses;
-      if (opportunities !== undefined) data.opportunities = opportunities;
-      if (threats !== undefined) data.threats = threats;
-      if (soStrategies !== undefined) data.soStrategies = soStrategies;
-      if (woStrategies !== undefined) data.woStrategies = woStrategies;
-      if (stStrategies !== undefined) data.stStrategies = stStrategies;
-      if (wtStrategies !== undefined) data.wtStrategies = wtStrategies;
-      const swot = await storage.upsertSwotAnalysis(req.params.id, data);
+      const partial = insertSwotAnalysisSchema.omit({ officeId: true }).partial().safeParse(req.body);
+      if (!partial.success) {
+        return res.status(400).json({ message: "リクエストデータが不正です", errors: partial.error.errors });
+      }
+      const swot = await storage.upsertSwotAnalysis(req.params.id, partial.data);
       res.json(swot);
     } catch (error) {
       console.error("Error saving SWOT:", error);

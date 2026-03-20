@@ -536,7 +536,7 @@ export class DatabaseStorage implements IStorage {
       ...recordData,
       updatedBy: recordData.createdBy,
     };
-    const [record] = await db.insert(officeSubsidyRecords).values(dataWithDefaults as any).returning();
+    const [record] = await db.insert(officeSubsidyRecords).values(dataWithDefaults as InsertOfficeSubsidyRecord).returning();
     return record;
   }
   
@@ -973,7 +973,7 @@ export class DatabaseStorage implements IStorage {
       ...invoiceData,
       bankAccountIds: invoiceData.bankAccountIds || null,
     };
-    const [invoice] = await db.insert(invoices).values(dataToInsert as any).returning();
+    const [invoice] = await db.insert(invoices).values(dataToInsert as InsertInvoice).returning();
     return invoice;
   }
   
@@ -1054,7 +1054,7 @@ export class DatabaseStorage implements IStorage {
     };
     const [invoice] = await db
       .update(invoices)
-      .set(dataToUpdate as any)
+      .set(dataToUpdate as Partial<InsertInvoice> & { updatedAt: Date })
       .where(eq(invoices.id, id))
       .returning();
     return invoice;
