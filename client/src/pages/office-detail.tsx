@@ -720,7 +720,7 @@ export default function OfficeDetailPage() {
                   <Button
                     variant="outline"
                     onClick={() => generateCrossSwotMutation.mutate()}
-                    disabled={!hasSWOT || generateCrossSwotMutation.isPending}
+                    disabled={!swotData || generateCrossSwotMutation.isPending}
                     data-testid="button-generate-cross-swot"
                   >
                     {generateCrossSwotMutation.isPending ? (
