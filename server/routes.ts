@@ -2091,9 +2091,13 @@ ${combinedText}`;
       let webContent = '';
       if (office.url) {
         try {
+          let targetUrl = office.url.trim();
+          if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+            targetUrl = 'https://' + targetUrl;
+          }
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 15000);
-          const response = await safeFetch(office.url, controller.signal);
+          const response = await safeFetch(targetUrl, controller.signal);
           clearTimeout(timeout);
           if (response.ok) {
             const buf = Buffer.from(await response.arrayBuffer());
