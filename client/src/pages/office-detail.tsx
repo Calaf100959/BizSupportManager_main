@@ -104,6 +104,11 @@ export default function OfficeDetailPage() {
     enabled: !!officeId,
   });
 
+  // Reset swotLocal whenever officeId changes (prevents stale data leaking between offices)
+  useEffect(() => {
+    setSwotLocal(null);
+  }, [officeId]);
+
   // Sync swotLocal from server data when it loads or changes
   useEffect(() => {
     if (swotData) {
@@ -117,6 +122,8 @@ export default function OfficeDetailPage() {
         stStrategies: (swotData.stStrategies as string[]) || [],
         wtStrategies: (swotData.wtStrategies as string[]) || [],
       });
+    } else if (swotData === null) {
+      setSwotLocal(null);
     }
   }, [swotData]);
 
