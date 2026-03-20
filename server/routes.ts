@@ -2165,9 +2165,9 @@ JSONのみを返してください。`;
         threats: normalizeSwotArray(parsed.threats, 'threats'),
       };
 
-      const shortFields = Object.entries(swotData).filter(([, v]) => v.length < 2).map(([k]) => k);
+      const shortFields = Object.entries(swotData).filter(([, v]) => v.length < 3).map(([k]) => k);
       if (shortFields.length > 0) {
-        return res.status(422).json({ message: `SWOT生成結果が不完全です (${shortFields.join(', ')} の項目数が不足)。再度お試しください。` });
+        return res.status(422).json({ message: `SWOT生成結果が不完全です (${shortFields.join(', ')} の項目数が不足、各3〜5項目必要)。再度お試しください。` });
       }
 
       const swot = await storage.upsertSwotAnalysis(req.params.id, swotData);
@@ -2238,9 +2238,9 @@ JSONのみを返してください。`;
         wtStrategies: normalizeCrossArray(parsed.wtStrategies, 'wtStrategies'),
       };
 
-      const shortStrategies = Object.entries(crossData).filter(([, v]) => v.length < 2).map(([k]) => k);
+      const shortStrategies = Object.entries(crossData).filter(([, v]) => v.length < 3).map(([k]) => k);
       if (shortStrategies.length > 0) {
-        return res.status(422).json({ message: `クロスSWOT生成結果が不完全です (${shortStrategies.join(', ')} の項目数が不足)。再度お試しください。` });
+        return res.status(422).json({ message: `クロスSWOT生成結果が不完全です (${shortStrategies.join(', ')} の項目数が不足、各3〜4項目必要)。再度お試しください。` });
       }
 
       const updated = await storage.upsertSwotAnalysis(req.params.id, crossData);
