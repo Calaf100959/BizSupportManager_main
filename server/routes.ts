@@ -2165,6 +2165,11 @@ JSONのみを返してください。`;
         threats: normalizeSwotArray(parsed.threats, 'threats'),
       };
 
+      const emptyFields = Object.entries(swotData).filter(([, v]) => v.length === 0).map(([k]) => k);
+      if (emptyFields.length > 0) {
+        return res.status(422).json({ message: `SWOT生成結果が不完全です (${emptyFields.join(', ')} が空)。再度お試しください。` });
+      }
+
       const swot = await storage.upsertSwotAnalysis(req.params.id, swotData);
       res.json(swot);
     } catch (error) {
@@ -2232,6 +2237,11 @@ JSONのみを返してください。`;
         stStrategies: normalizeCrossArray(parsed.stStrategies, 'stStrategies'),
         wtStrategies: normalizeCrossArray(parsed.wtStrategies, 'wtStrategies'),
       };
+
+      const emptyStrategies = Object.entries(crossData).filter(([, v]) => v.length === 0).map(([k]) => k);
+      if (emptyStrategies.length > 0) {
+        return res.status(422).json({ message: `クロスSWOT生成結果が不完全です (${emptyStrategies.join(', ')} が空)。再度お試しください。` });
+      }
 
       const updated = await storage.upsertSwotAnalysis(req.params.id, crossData);
       res.json(updated);
