@@ -18,7 +18,7 @@ import {
 } from "@shared/schema";
 import { sendEmail } from "./gmail";
 import * as cheerio from "cheerio";
-import * as iconv from "iconv-lite";
+import iconv from "iconv-lite";
 import OpenAI from "openai";
 
 const openaiClient = new OpenAI({
