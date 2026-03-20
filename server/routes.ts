@@ -2179,6 +2179,11 @@ JSONのみを返してください。`;
       const swot = await storage.getSwotAnalysis(req.params.id);
       if (!swot) return res.status(404).json({ message: "先にSWOT分析を生成してください" });
 
+      const hasContent = (arr: unknown) => Array.isArray(arr) && arr.some(s => typeof s === 'string' && s.trim().length > 0);
+      if (!hasContent(swot.strengths) && !hasContent(swot.weaknesses) && !hasContent(swot.opportunities) && !hasContent(swot.threats)) {
+        return res.status(400).json({ message: "クロスSWOT生成にはSWOT項目が1つ以上必要です。先にSWOT分析を行ってください。" });
+      }
+
       const prompt = `あなたは中小企業経営診断の専門家です。以下のSWOT分析をもとに、クロスSWOT戦略を作成してください。
 
 【強み(S)】
