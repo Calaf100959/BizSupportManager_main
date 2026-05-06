@@ -1,58 +1,74 @@
 #!/bin/bash
 # XServer VPS 初回セットアップスクリプト
 # Ubuntu 22.04 LTS 想定
-# 実行: bash setup.sh YOUR_DOMAIN
+# Dify が既に動作している VPS への CRM 追加インストール用
+# 実行: bash setup.sh
 set -e
 
-DOMAIN=${1:?"使い方: bash setup.sh YOUR_DOMAIN"}
 APP_DIR="/var/www/bizsupport"
 REPO_URL="https://github.com/Calaf100959/BizSupportManager_main.git"
 
-echo "=== 1. システム更新 ==="
-apt-get update && apt-get upgrade -y
+echo "=== 1. Node.js 20 (LTS) のインストール確認 ==="
+if ! command -v node &> /dev/null; then
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+else
+  echo "Node.js $(node -v) 検出済み。スキップ。"
+fi
 
-echo "=== 2. 必要パッケージのインストール ==="
-apt-get install -y git nginx certbot python3-certbot-nginx curl
+echo "=== 2. PM2 のインストール確認 ==="
+if ! command -v pm2 &> /dev/null; then
+  npm install -g pm2
+  pm2 startup systemd -u root --hp /root
+else
+  echo "PM2 $(pm2 -v) 検出済み。スキップ。"
+fi
 
-echo "=== 3. Node.js 20 (LTS) のインストール ==="
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt-get install -y nodejs
-
-echo "=== 4. PM2 のインストール ==="
-npm install -g pm2
-pm2 startup systemd -u root --hp /root
-
-echo "=== 5. アプリディレクトリの作成 ==="
-mkdir -p "$APP_DIR"
+echo "=== 3. PM2 ログディレクトリの作成 ==="
 mkdir -p /var/log/pm2
 
-echo "=== 6. リポジトリのクローン ==="
-git clone "$REPO_URL" "$APP_DIR"
-cd "$APP_DIR"
+echo "=== 4. アプリディレクトリの作成 ==="
+mkdir -p "$APP_DIR"
 
-echo "=== 7. 環境変数ファイルの作成 ==="
-cp .env.example .env
+echo "=== 5. リポジトリのクローン ==="
+if [ -d "$APP_DIR/.git" ]; then
+  echo "リポジトリ既存。git pull を実行します。"
+  git -C "$APP_DIR" pull origin main
+else
+  git clone "$REPO_URL" "$APP_DIR"
+fi
+
+echo "=== 6. 環境変数ファイルの作成 ==="
+if [ ! -f "$APP_DIR/.env" ]; then
+  cp "$APP_DIR/.env.example" "$APP_DIR/.env"
+  echo ""
+  echo ">>> .env を編集して環境変数を設定してください:"
+  echo "    nano $APP_DIR/.env"
+  echo ""
+  echo "  GOOGLE_CALLBACK_URL は必ず以下の形式にしてください:"
+  echo "    https://YOUR_DOMAIN/crm/api/callback"
+  echo ""
+else
+  echo ".env 既存。スキップ。（内容は手動で確認してください）"
+fi
+
 echo ""
-echo ">>> .env を編集して環境変数を設定してください:"
-echo "    nano $APP_DIR/.env"
+echo "=== 7. Nginx への CRM ロケーション追加 ==="
 echo ""
-echo "設定が完了したら以下を実行してください:"
-echo "    bash $APP_DIR/deploy/deploy.sh"
+echo "Dify の nginx 設定ファイルを開いて、server { } の閉じ括弧の直前に"
+echo "以下のファイルの内容を貼り付けてください:"
+echo ""
+echo "    cat $APP_DIR/deploy/nginx-crm-location.conf"
+echo ""
+echo "貼り付け後:"
+echo "    sudo nginx -t && sudo systemctl reload nginx"
 echo ""
 
-echo "=== 8. Nginx の設定 ==="
-cp "$APP_DIR/deploy/nginx.conf.example" "/etc/nginx/sites-available/bizsupport"
-sed -i "s/YOUR_DOMAIN/$DOMAIN/g" /etc/nginx/sites-available/bizsupport
-ln -sf /etc/nginx/sites-available/bizsupport /etc/nginx/sites-enabled/bizsupport
-rm -f /etc/nginx/sites-enabled/default
-nginx -t && systemctl reload nginx
-
-echo "=== 9. SSL証明書の取得 (Let's Encrypt) ==="
-certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email admin@"$DOMAIN" || \
-  echo "SSL取得に失敗しました。ドメインのDNS設定を確認してください。"
-
-echo ""
 echo "=== セットアップ完了 ==="
+echo ""
 echo "次のステップ:"
-echo "  1. nano $APP_DIR/.env  で環境変数を設定"
-echo "  2. bash $APP_DIR/deploy/deploy.sh  でアプリをビルド・起動"
+echo "  1. nano $APP_DIR/.env              # 環境変数を設定"
+echo "  2. Nginx に /crm/ ロケーション追加  # 上記の手順に従って"
+echo "  3. Google Cloud Console にコールバックURL追加"
+echo "     https://YOUR_DOMAIN/crm/api/callback"
+echo "  4. bash $APP_DIR/deploy/deploy.sh  # ビルド＆起動"

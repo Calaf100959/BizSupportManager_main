@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -102,10 +102,15 @@ function AuthenticatedApp() {
 }
 
 function App() {
+  // import.meta.env.BASE_URL は開発時 "/" 、本番ビルド時 "/crm/"
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthenticatedApp />
+        <Router base={base}>
+          <AuthenticatedApp />
+        </Router>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

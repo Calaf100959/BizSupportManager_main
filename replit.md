@@ -23,7 +23,7 @@ Preferred communication style: Simple, everyday language.
 *   **API Design Pattern:** RESTful API with resource-based routing, consistent error handling, request logging, and authentication middleware.
 *   **Database Layer:** Drizzle ORM for type-safe queries and schema management. An `IStorage` interface abstracts database implementation.
 *   **Core Functionality:**
-    *   **Authentication:** Replit Auth (OIDC) integration, session-based authentication with PostgreSQL persistence, automatic user profile synchronization.
+    *   **Authentication:** Google OAuth 2.0 (`passport-google-oauth20`). Session-based with PostgreSQL persistence. `req.user.claims.sub` = Google profile ID.
     *   **Office Management:** CRUD operations for client offices, advanced search, detailed corporate and contact information, support for various engagement types.
     *   **Person Management:** Management of individual contacts within offices, extensive contact methods, linked to offices.
     *   **Karte System:** Medical chart-style business consultation records, including visit dates, titles, content, next actions, and a hierarchical guidance classification system with cascading selection UI.
