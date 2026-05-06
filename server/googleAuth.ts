@@ -91,9 +91,11 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
+    console.log("[auth] callback query:", JSON.stringify(req.query));
     passport.authenticate("google", {
-      successReturnToOrRedirect: "/",
+      successRedirect: "/",
       failureRedirect: "/api/login",
+      failureMessage: true,
     })(req, res, next);
   });
 
