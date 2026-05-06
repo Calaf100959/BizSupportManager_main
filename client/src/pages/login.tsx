@@ -1,12 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 
 export default function LoginPage() {
-  const handleLogin = () => {
-    window.location.href = "/api/login";
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -19,15 +16,16 @@ export default function LoginPage() {
             <CardDescription>中小企業診断士向け</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-sm text-center text-muted-foreground">
-              顧客情報と支援履歴を効率的に管理
-            </p>
-            <Button onClick={handleLogin} className="w-full" data-testid="button-login">
-              ログイン
+        <CardContent className="space-y-4">
+          <p className="text-sm text-center text-muted-foreground">
+            顧客情報と支援履歴を効率的に管理
+          </p>
+          <a href="/api/login" className="block w-full" data-testid="link-login-google">
+            <Button variant="outline" className="w-full gap-3">
+              <SiGoogle className="h-4 w-4 text-[#4285F4]" />
+              Googleでログイン
             </Button>
-          </div>
+          </a>
         </CardContent>
       </Card>
     </div>
