@@ -36,12 +36,14 @@ export async function setupAuth(app: Express) {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     console.warn("[auth] GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET が未設定です。Google認証は機能しません。");
   } else {
+    const callbackURL = process.env.GOOGLE_CALLBACK_URL || "/api/callback";
+    console.log(`[auth] Google OAuth callback URL: ${callbackURL}`);
     passport.use(
       new GoogleStrategy(
         {
           clientID: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/callback",
+          callbackURL,
         },
         async (_accessToken, _refreshToken, profile, done) => {
           try {
