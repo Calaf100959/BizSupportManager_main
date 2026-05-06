@@ -46,11 +46,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Authentication & Authorization
 
-*   **Replit Auth Integration:** OpenID Connect (OIDC) via Replit's identity provider, Passport.js strategy, and PostgreSQL-backed session management.
+*   **Google OAuth:** `passport-google-oauth20` strategy. Requires `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` env vars. Session-based with PostgreSQL persistence. `req.user.claims.sub` = Google profile ID.
 *   **Session Management:** 7-day session TTL with secure, httpOnly cookies, `connect-pg-simple` for session storage, automatic user upsert.
+*   **Note:** OAuth login must be done in a real browser tab (not an iframe). `cookie.secure` is true in production only.
 
 ## External Dependencies
 
 *   **Database:** Neon Serverless PostgreSQL (`@neondatabase/serverless`) for primary data storage.
-*   **Authentication Service:** Replit OIDC provider.
+*   **Authentication Service:** Google OAuth 2.0 (`passport-google-oauth20`).
 *   **UI Component Libraries:** Radix UI, Lucide React for iconography, `date-fns` for date manipulation, `class-variance-authority` (CVA) for component variants.

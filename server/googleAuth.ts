@@ -37,7 +37,6 @@ export async function setupAuth(app: Express) {
     console.warn("[auth] GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET が未設定です。Google認証は機能しません。");
   } else {
     const callbackURL = process.env.GOOGLE_CALLBACK_URL || "/api/callback";
-    console.log(`[auth] Google OAuth callback URL: ${callbackURL}`);
     passport.use(
       new GoogleStrategy(
         {
@@ -91,11 +90,9 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    console.log("[auth] callback query:", JSON.stringify(req.query));
     passport.authenticate("google", {
       successRedirect: "/",
       failureRedirect: "/api/login",
-      failureMessage: true,
     })(req, res, next);
   });
 
