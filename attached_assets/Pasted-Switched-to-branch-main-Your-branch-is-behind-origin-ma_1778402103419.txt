@@ -1,0 +1,94 @@
+Switched to branch 'main'
+Your branch is behind 'origin/main' by 3 commits, and can be fast-forwarded.
+  (use "git pull" to update your local branch)
+Updating 561d729..611557f
+Fast-forward
+ .env.example                                                                                     |  32 +++
+ .replit                                                                                          |   7 +-
+ attached_assets/Pasted-The-source-list-for-the-Content-Security-Policy-directi_1773977371805.txt | 454 ++++++++++++++++++++++++++++++++++++
+ attached_assets/image_1769929015986.png                                                          | Bin 0 -> 37945 bytes
+ attached_assets/image_1773979070539.png                                                          | Bin 0 -> 162723 bytes
+ attached_assets/image_1778061124921.png                                                          | Bin 0 -> 113598 bytes
+ attached_assets/image_1778061270703.png                                                          | Bin 0 -> 64482 bytes
+ client/replit_integrations/audio/audio-playback-worklet.js                                       | 112 +++++++++
+ client/replit_integrations/audio/audio-utils.ts                                                  |  36 +++
+ client/replit_integrations/audio/index.ts                                                        |  45 ++++
+ client/replit_integrations/audio/useAudioPlayback.ts                                             | 105 +++++++++
+ client/replit_integrations/audio/useVoiceRecorder.ts                                             |  52 +++++
+ client/replit_integrations/audio/useVoiceStream.ts                                               |  91 ++++++++
+ client/src/App.tsx                                                                               |   9 +-
+ client/src/components/invoice-print-view.tsx                                                     |  60 +++--
+ client/src/lib/industry-classifications.ts                                                       | 830 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ client/src/lib/invoice-pdf.ts                                                                    | 422 ++++++++++++++++++----------------
+ client/src/lib/swot-pdf.ts                                                                       | 444 ++++++++++++++++++++++++++++++++++++
+ client/src/pages/company-settings.tsx                                                            | 939 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++-------------------
+ client/src/pages/invoice-detail.tsx                                                              |  35 ++-
+ client/src/pages/invoice-form.tsx                                                                | 106 ++++++++-
+ client/src/pages/login.tsx                                                                       |  22 +-
+ client/src/pages/office-detail.tsx                                                               | 477 +++++++++++++++++++++++++++++++++++++-
+ client/src/pages/office-form.tsx                                                                 | 370 ++++++++++++++++++++++++++----
+ deploy/deploy.sh                                                                                 |  34 +++
+ deploy/ecosystem.config.cjs                                                                      |  21 ++
+ deploy/nginx-crm-location.conf                                                                   |  29 +++
+ deploy/nginx.conf.example                                                                        |  35 +++
+ deploy/setup.sh                                                                                  |  74 ++++++
+ package-lock.json                                                                                | 703 ++++++++++++++++++++++++++++++++++++++++++++++++++++++--
+ package.json                                                                                     |  14 +-
+ replit.md                                                                                        |  13 +-
+ server/googleAuth.ts                                                                             | 111 +++++++++
+ server/replit_integrations/audio/client.ts                                                       | 274 ++++++++++++++++++++++
+ server/replit_integrations/audio/index.ts                                                        |  14 ++
+ server/replit_integrations/audio/routes.ts                                                       | 136 +++++++++++
+ server/replit_integrations/batch/index.ts                                                        |   7 +
+ server/replit_integrations/batch/utils.ts                                                        | 182 +++++++++++++++
+ server/replit_integrations/chat/index.ts                                                         |   3 +
+ server/replit_integrations/chat/routes.ts                                                        | 118 ++++++++++
+ server/replit_integrations/chat/storage.ts                                                       |  43 ++++
+ server/replit_integrations/image/client.ts                                                       |  59 +++++
+ server/replit_integrations/image/index.ts                                                        |   3 +
+ server/replit_integrations/image/routes.ts                                                       |  31 +++
+ server/routes.ts                                                                                 | 959 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ server/storage.ts                                                                                | 214 ++++++++++++++++-
+ shared/models/chat.ts                                                                            |  34 +++
+ shared/schema.ts                                                                                 | 107 ++++++++-
+ vite.config.ts                                                                                   |   1 +
+ 49 files changed, 7293 insertions(+), 574 deletions(-)
+ create mode 100644 .env.example
+ create mode 100644 attached_assets/Pasted-The-source-list-for-the-Content-Security-Policy-directi_1773977371805.txt
+ create mode 100644 attached_assets/image_1769929015986.png
+ create mode 100644 attached_assets/image_1773979070539.png
+ create mode 100644 attached_assets/image_1778061124921.png
+ create mode 100644 attached_assets/image_1778061270703.png
+ create mode 100644 client/replit_integrations/audio/audio-playback-worklet.js
+ create mode 100644 client/replit_integrations/audio/audio-utils.ts
+ create mode 100644 client/replit_integrations/audio/index.ts
+ create mode 100644 client/replit_integrations/audio/useAudioPlayback.ts
+ create mode 100644 client/replit_integrations/audio/useVoiceRecorder.ts
+ create mode 100644 client/replit_integrations/audio/useVoiceStream.ts
+ create mode 100644 client/src/lib/industry-classifications.ts
+ create mode 100644 client/src/lib/swot-pdf.ts
+ create mode 100644 deploy/deploy.sh
+ create mode 100644 deploy/ecosystem.config.cjs
+ create mode 100644 deploy/nginx-crm-location.conf
+ create mode 100644 deploy/nginx.conf.example
+ create mode 100644 deploy/setup.sh
+ create mode 100644 server/googleAuth.ts
+ create mode 100644 server/replit_integrations/audio/client.ts
+ create mode 100644 server/replit_integrations/audio/index.ts
+ create mode 100644 server/replit_integrations/audio/routes.ts
+ create mode 100644 server/replit_integrations/batch/index.ts
+ create mode 100644 server/replit_integrations/batch/utils.ts
+ create mode 100644 server/replit_integrations/chat/index.ts
+ create mode 100644 server/replit_integrations/chat/routes.ts
+ create mode 100644 server/replit_integrations/chat/storage.ts
+ create mode 100644 server/replit_integrations/image/client.ts
+ create mode 100644 server/replit_integrations/image/index.ts
+ create mode 100644 server/replit_integrations/image/routes.ts
+ create mode 100644 shared/models/chat.ts
+To https://github.com/Calaf100959/BizSupportManager_main.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to 'https://github.com/Calaf100959/BizSupportManager_main.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
