@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "urTXvil5t5O9gIVAdqHsC"
+uri = "file://deploy/DEPLOY_INSTRUCTIONS.md"
+type = "text"
+title = "デプロイ作業指示書（Claude Code向け）"
